@@ -1,0 +1,178 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <parent>
+    <groupId>org.renci.canvas.primer</groupId>
+    <artifactId>primer-dao</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+  <name>CANVAS :: Primer :: DAO :: API</name>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.renci.canvas.primer.primer-dao</groupId>
+  <artifactId>primer-dao-api</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>bundle</packaging>
+  <properties>
+    <maven.site.plugin.skip>true</maven.site.plugin.skip>    
+  </properties>    
+  <dependencies>
+    <!-- <dependency> -->
+    <!--   <groupId>org.apache.openjpa</groupId> -->
+    <!--   <artifactId>openjpa</artifactId> -->
+    <!-- </dependency> -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>javax.validation</groupId>
+      <artifactId>validation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-validator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>javax.transaction</groupId>
+      <artifactId>javax.transaction-api</artifactId>
+    </dependency>            
+    <!-- <dependency> -->
+    <!--   <groupId>org.apache.geronimo.specs</groupId> -->
+    <!--   <artifactId>geronimo-jpa_2.0_spec</artifactId> -->
+    <!--   <scope>provided</scope> -->
+    <!-- </dependency>     -->
+    <dependency>
+      <groupId>org.hibernate.javax.persistence</groupId>
+      <artifactId>hibernate-jpa-2.1-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-tools</artifactId>
+      <version>5.2.1.Final</version>
+    </dependency>            
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Meta-Persistence>META-INF/persistence.xml</Meta-Persistence>
+            <Private-Package>org.renci.canvas.primer.dao.*</Private-Package>
+            <Export-Package>org.renci.canvas.primer.dao*</Export-Package>
+            <Import-Package>org.hibernate.proxy,javassist.util.proxy,*</Import-Package>
+          </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+	<artifactId>maven-compiler-plugin</artifactId>
+	<configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <compilerArgument>-proc:none</compilerArgument>
+	</configuration>
+      </plugin>
+      <plugin>
+	<groupId>org.bsc.maven</groupId>
+	<artifactId>maven-processor-plugin</artifactId>
+	<version>3.2.0</version>
+	<executions>
+          <execution>
+            <id>process</id>
+            <goals>
+              <goal>process</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <processors>
+                <processor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</processor>
+              </processors>
+            </configuration>
+          </execution>
+	</executions>
+	<dependencies>
+          <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-jpamodelgen</artifactId>
+            <version>${hibernate.version}</version>
+          </dependency>
+	</dependencies>
+      </plugin>
+      
+      <!-- <plugin> -->
+      <!--   <groupId>org.apache.openjpa</groupId> -->
+      <!--   <artifactId>openjpa-maven-plugin</artifactId> -->
+      <!-- 	<version>${openjpa.version}</version>	 -->
+      <!--   <configuration> -->
+      <!--     <includes>org/renci/canvas/primer/dao/model/*.class</includes> -->
+      <!-- 	  <excludes>org/renci/canvas/primer/dao/model/*_.class</excludes>	   -->
+      <!--     <addDefaultConstructor>true</addDefaultConstructor> -->
+      <!--     <enforcePropertyRestrictions>true</enforcePropertyRestrictions> -->
+      <!--   </configuration> -->
+      <!--   <executions> -->
+      <!--     <execution> -->
+      <!--       <id>enhancer</id> -->
+      <!--       <phase>process-classes</phase> -->
+      <!--       <goals> -->
+      <!--         <goal>enhance</goal>	       -->
+      <!--         <goal>sql</goal> -->
+      <!--       </goals> -->
+      <!--     </execution> -->
+      <!--   </executions> -->
+      <!-- 	<dependencies> -->
+      <!-- 	  <dependency> -->
+      <!-- 	    <groupId>org.apache.openjpa</groupId> -->
+      <!-- 	    <artifactId>openjpa</artifactId> -->
+      <!-- 	    <version>${openjpa.version}</version> -->
+      <!-- 	  </dependency> -->
+      <!-- 	</dependencies>	 -->
+      <!-- </plugin> -->
+      <!-- <plugin> -->
+      <!--   <groupId>org.apache.maven.plugins</groupId> -->
+      <!--   <artifactId>maven-compiler-plugin</artifactId> -->
+      <!--   <version>${maven.compiler.plugin.version}</version> -->
+      <!--   <configuration> -->
+      <!--     <source>1.8</source> -->
+      <!--     <target>1.8</target> -->
+      <!--     <compilerArgument>-proc:none</compilerArgument> -->
+      <!--   </configuration> -->
+      <!--   <executions> -->
+      <!--     <execution> -->
+      <!--       <id>run-annotation-processors-only</id> -->
+      <!--       <phase>generate-sources</phase> -->
+      <!--       <configuration> -->
+      <!--         <compilerArgument>-Aopenjpa.metamodel=true</compilerArgument> -->
+      <!--         <includes> -->
+      <!--           <include>**/model/*.java</include> -->
+      <!--         </includes> -->
+      <!--       </configuration> -->
+      <!--       <goals> -->
+      <!--         <goal>compile</goal> -->
+      <!--       </goals> -->
+      <!--     </execution> -->
+      <!--   </executions> -->
+      <!-- </plugin> -->
+      <!-- <plugin> -->
+      <!--   <groupId>org.codehaus.mojo</groupId> -->
+      <!--   <artifactId>build-helper-maven-plugin</artifactId> -->
+      <!--   <version>1.5</version> -->
+      <!--   <executions> -->
+      <!--     <execution> -->
+      <!--       <phase>process-sources</phase> -->
+      <!--       <configuration> -->
+      <!--         <sources> -->
+      <!--           <source>${project.build.directory}/generated-sources/annotations</source> -->
+      <!--         </sources> -->
+      <!--       </configuration> -->
+      <!--       <goals> -->
+      <!--         <goal>add-source</goal> -->
+      <!--       </goals> -->
+      <!--     </execution> -->
+      <!--   </executions> -->
+      <!-- </plugin> -->
+    </plugins>
+  </build>
+</project>

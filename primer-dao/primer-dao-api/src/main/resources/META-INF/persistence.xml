@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd" version="2.1">
+
+  <persistence-unit name="primer" transaction-type="JTA">
+
+    <!-- <provider>org.apache.openjpa.persistence.PersistenceProviderImpl</provider> -->
+    <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+    <jta-data-source>osgi:service/javax.sql.DataSource/(osgi.jndi.service.name=primerJTA)</jta-data-source>
+    <non-jta-data-source>osgi:service/javax.sql.DataSource/(osgi.jndi.service.name=primerNoJTA)</non-jta-data-source>
+
+    <class>org.renci.canvas.primer.dao.model.NamedEntity</class>
+    <class>org.renci.canvas.primer.dao.model.LoadedSequence</class>
+    <class>org.renci.canvas.primer.dao.model.LoadedMetadata</class>
+    <class>org.renci.canvas.primer.dao.model.DatabaseLoaded</class>
+    <class>org.renci.canvas.primer.dao.model.Mappings</class>
+    <class>org.renci.canvas.primer.dao.model.MappingsDatabaseLoaded</class>
+    <class>org.renci.canvas.primer.dao.model.Status</class>
+
+    <exclude-unlisted-classes>true</exclude-unlisted-classes>
+    <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
+
+    <properties>
+      <property name="javax.persistence.query.timeout" value="300000" />
+      <property name="hibernate.hbm2ddl.auto" value="validate" />
+      <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect" />
+      <property name="hibernate.query.jpaql_strict_compliance" value="true" />
+      <property name="hibernate.format_sql" value="true" />
+      <property name="hibernate.use_sql_comments" value="false" />
+      <property name="hibernate.jdbc.batch_versioned_data" value="true" />
+      <property name="hibernate.cache.provider_class" value="org.hibernate.cache.HashtableCacheProvider" />
+      <!-- <property name="openjpa.jdbc.MappingDefaults" value="ForeignKeyDeleteAction=restrict, JoinForeignKeyDeleteAction=restrict" /> -->
+      <!-- <property name="openjpa.jdbc.SchemaFactory" value="native(ForeignKeys=true)" /> -->
+      <!-- <property name="openjpa.jdbc.SynchronizeMappings" value="buildSchema(ForeignKeys=true,Sequences=false)" /> -->
+      <!-- <property name="openjpa.Log" value="slf4j" /> -->
+      <!-- <property name="openjpa.Multithreaded" value="true" /> -->
+      <!-- <property name="openjpa.jdbc.DBDictionary" value="postgres(SearchStringEscape=\, SupportsXMLColumn=false)" /> -->
+      <!-- <property name="openjpa.RemoteCommitProvider" value="sjvm" /> -->
+      <!-- <property name="openjpa.DataCache" value="true(CacheSize=5000, SoftReferenceSize=0)" /> -->
+      <!-- <property name="openjpa.QueryCache" value="false" /> -->
+    </properties>
+
+  </persistence-unit>
+</persistence>

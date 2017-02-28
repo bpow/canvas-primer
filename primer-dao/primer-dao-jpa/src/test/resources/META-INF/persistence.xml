@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd" version="2.0">
+
+  <persistence-unit name="primer_test" transaction-type="RESOURCE_LOCAL">
+
+    <provider>org.apache.openjpa.persistence.PersistenceProviderImpl</provider>
+
+    <!-- <jta-data-source>osgi:service/javax.sql.DataSource/(osgi.jndi.service.name=binningJTA)</jta-data-source> -->
+    <!-- <non-jta-data-source>osgi:service/javax.sql.DataSource/(osgi.jndi.service.name=binningNoJTA)</non-jta-data-source> -->
+
+    <class>org.renci.canvas.primer.dao.model.DatabaseLoaded</class>
+    <class>org.renci.canvas.primer.dao.model.Mappings</class>
+    <class>org.renci.canvas.primer.dao.model.MappingsDatabaseLoaded</class>
+    <class>org.renci.canvas.primer.dao.model.Status</class>
+
+    <exclude-unlisted-classes>true</exclude-unlisted-classes>
+    <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
+
+    <properties>
+      <property name="javax.persistence.jdbc.driver" value="org.postgresql.Driver" />
+      <property name="openjpa.jdbc.MappingDefaults" value="ForeignKeyDeleteAction=restrict, JoinForeignKeyDeleteAction=restrict" />
+      <!-- <property name="openjpa.jdbc.SchemaFactory" value="native(ForeignKeys=false)" /> -->
+      <!-- <property name="openjpa.jdbc.SynchronizeMappings" value="buildSchema(ForeignKeys=true,Sequences=false)" /> -->
+      <property name="openjpa.jdbc.SchemaFactory" value="dynamic" />
+      <property name="openjpa.jdbc.SynchronizeMappings" value="validate" />
+      <property name="openjpa.Multithreaded" value="true" />
+      <property name="openjpa.ConnectionFactoryProperties" value="printParameters=true" />
+      <property name="openjpa.Log" value="DefaultLevel=INFO, Runtime=WARN, Tool=WARN, SQL=TRACE" />
+      <property name="openjpa.jdbc.DBDictionary" value="postgres(DisableAlterSeqenceIncrementBy=true, SearchStringEscape=\, SupportsXMLColumn=false)" />
+      <property name="openjpa.RemoteCommitProvider" value="sjvm" />
+      <property name="openjpa.DataCache" value="true(CacheSize=5000, SoftReferenceSize=0)" />
+      <property name="openjpa.QueryCache" value="true" />
+      <property name="openjpa.FetchBatchSize" value="100" />
+    </properties>
+
+  </persistence-unit>
+</persistence>
