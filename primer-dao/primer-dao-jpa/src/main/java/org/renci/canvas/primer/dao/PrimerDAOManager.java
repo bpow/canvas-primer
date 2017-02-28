@@ -1,6 +1,5 @@
 package org.renci.canvas.primer.dao;
 
-import org.renci.canvas.primer.dao.PrimerDAOBeanService;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class PrimerDAOManager {

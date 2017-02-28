@@ -1,10 +1,6 @@
 package org.renci.canvas.primer.gr.commands;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -12,9 +8,6 @@ import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.net.ftp.FTP;
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPReply;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.lifecycle.Reference;
@@ -81,7 +74,6 @@ public class DownloadAction implements Action {
         pulledFiles.addAll(FTPUtil.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/CHR_Un", "hs_ref_", ".fa.gz"));
         pulledFiles.addAll(FTPUtil.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/CHR_MT", "hs_ref_", ".fa.gz"));
 
-        
         // check_and_recover(pulledfiles,f,['unplaced','chrUn'],'CHR_Un')
         // check_and_recover(pulledfiles,f,['MT'],'CHR_MT')
         // f.close()

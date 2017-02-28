@@ -26,7 +26,7 @@ public class Scratch {
     public void scratch() throws Exception {
         Date d = DateUtils.parseDate("2015-12-14T00:00:00Z", "yyyy-MM-dd'T'HH:mm:ss'Z'");
         System.out.println(d.toString());
-        
+
         String location = "19q13.43";
         Pattern p = Pattern.compile("(?<chr>\\d+)[a-z]\\.?\\d+?");
         Matcher m = p.matcher(location);
@@ -39,7 +39,7 @@ public class Scratch {
     @Test
     public void fetch() throws Exception {
         Client client = ClientBuilder.newBuilder().newClient();
-        //WebTarget target = client.target("http://rest.genenames.org/fetch/symbol/ASIC1");
+        // WebTarget target = client.target("http://rest.genenames.org/fetch/symbol/ASIC1");
         WebTarget target = client.target("http://rest.genenames.org/fetch/symbol/ADAM12-OT1");
         Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON);
         Response response = builder.get();
