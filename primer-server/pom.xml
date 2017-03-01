@@ -3,19 +3,27 @@
   <parent>
     <groupId>org.renci.canvas</groupId>
     <artifactId>primer</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
   </parent>
   <name>CANVAS :: Primer :: Server</name>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas.primer</groupId>
   <artifactId>primer-server</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2-SNAPSHOT</version>
   <packaging>karaf-assembly</packaging>
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
     <assembly.directory>${project.build.directory}/assembly</assembly.directory>
   </properties>
   <dependencies>
+    <dependency>
+      <groupId>org.renci.canvas.primer</groupId>
+      <artifactId>primer-features</artifactId>
+      <classifier>features</classifier>
+      <version>0.0.2-SNAPSHOT</version>
+      <type>xml</type>
+      <scope>runtime</scope>
+    </dependency>    
     <dependency>
       <groupId>org.apache.karaf.features</groupId>
       <artifactId>framework</artifactId>
@@ -70,30 +78,6 @@
       <type>xml</type>
       <scope>runtime</scope>
     </dependency>        
-    <dependency>
-      <groupId>org.ops4j.pax.cdi</groupId>
-      <artifactId>pax-cdi-features</artifactId>
-      <version>0.12.0</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.ops4j.pax.jdbc</groupId>
-      <artifactId>pax-jdbc-features</artifactId>
-      <version>1.0.0</version>
-      <classifier>features</classifier>
-      <type>xml</type>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.renci.canvas.primer</groupId>
-      <artifactId>primer-features</artifactId>
-      <classifier>features</classifier>
-      <version>0.0.1-SNAPSHOT</version>
-      <type>xml</type>
-      <scope>runtime</scope>
-    </dependency>
   </dependencies>
   <build>
     <resources>
@@ -162,8 +146,7 @@
 	    <feature>spring-orm</feature>
 	    <feature>scr</feature>
             <feature>jndi</feature>
-	    <feature>pax-cdi-1.2</feature>
-	    <feature>pax-cdi-1.2-weld</feature>
+	    <feature>pax-cdi</feature>
             <feature>jdbc</feature>	    
             <feature>aries-blueprint</feature>
 	    <feature>primer-common</feature>	    
