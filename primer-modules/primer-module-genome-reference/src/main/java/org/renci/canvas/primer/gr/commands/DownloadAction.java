@@ -13,6 +13,7 @@ import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.renci.canvas.dao.CANVASDAOBeanService;
+import org.renci.canvas.primer.commons.FTPFactory;
 import org.renci.canvas.primer.dao.PrimerDAOBeanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public class DownloadAction implements Action {
         File outputDir = outputPath.toFile();
         outputDir.mkdirs();
 
-        File readme = FTPUtil.ncbiDownload(outputDir, "/genomes/H_sapiens", "README_CURRENT_RELEASE");
+        File readme = FTPFactory.ncbiDownload(outputDir, "/genomes/H_sapiens", "README_CURRENT_RELEASE");
         logger.info("Downloaded readme to: {}", readme.getAbsolutePath());
 
         List<String> lines = FileUtils.readLines(readme, "UTF-8");
@@ -70,9 +71,9 @@ public class DownloadAction implements Action {
         outputDir = outputPath.toFile();
         outputDir.mkdirs();
 
-        List<File> pulledFiles = FTPUtil.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/Assembled_chromosomes/seq", "hs_ref_", ".fa.gz");
-        pulledFiles.addAll(FTPUtil.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/CHR_Un", "hs_ref_", ".fa.gz"));
-        pulledFiles.addAll(FTPUtil.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/CHR_MT", "hs_ref_", ".fa.gz"));
+        List<File> pulledFiles = FTPFactory.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/Assembled_chromosomes/seq", "hs_ref_", ".fa.gz");
+        pulledFiles.addAll(FTPFactory.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/CHR_Un", "hs_ref_", ".fa.gz"));
+        pulledFiles.addAll(FTPFactory.ncbiDownloadFiles(outputDir, "/genomes/H_sapiens/CHR_MT", "hs_ref_", ".fa.gz"));
 
         // check_and_recover(pulledfiles,f,['unplaced','chrUn'],'CHR_Un')
         // check_and_recover(pulledfiles,f,['MT'],'CHR_MT')
