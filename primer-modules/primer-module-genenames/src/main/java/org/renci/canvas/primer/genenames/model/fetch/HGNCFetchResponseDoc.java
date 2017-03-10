@@ -151,8 +151,19 @@ public class HGNCFetchResponseDoc {
     @JsonProperty("snornabase")
     private String snoRNABaseId;
 
+    @JsonProperty("rna_central_ids")
+    private List<String> rnaCentralIDs;
+
     public HGNCFetchResponseDoc() {
         super();
+    }
+
+    public List<String> getRnaCentralIDs() {
+        return rnaCentralIDs;
+    }
+
+    public void setRnaCentralIDs(List<String> rnaCentralIDs) {
+        this.rnaCentralIDs = rnaCentralIDs;
     }
 
     public String getHgncId() {
