@@ -12,9 +12,10 @@
   <packaging>pom</packaging>
   <properties>
     <maven.site.plugin.skip>false</maven.site.plugin.skip>
-    <renci.canvas.dao.version>0.0.13</renci.canvas.dao.version>
+    <renci.canvas.dao.version>0.0.15-SNAPSHOT</renci.canvas.dao.version>
     <biojava.version>4.2.4</biojava.version>
     <htsjdk.version>2.8.1</htsjdk.version>
+    <gbff.parser.version>0.0.27</gbff.parser.version>    
   </properties>
   <issueManagement>
     <system>GitHub Issues</system>
@@ -35,6 +36,11 @@
   </scm>
   <dependencyManagement>
     <dependencies>
+      <dependency>
+	<groupId>org.renci.gff</groupId>
+	<artifactId>gff3-parser</artifactId>
+	<version>0.0.7</version>
+      </dependency>	      
       <dependency>      
 	<groupId>org.biojava</groupId>
 	<artifactId>biojava-core</artifactId>
@@ -54,7 +60,12 @@
 	<groupId>org.renci.canvas.primer.primer-dao</groupId>
 	<artifactId>primer-dao-jpa</artifactId>
       	<version>0.0.3-SNAPSHOT</version>		
-      </dependency>                  
+      </dependency>
+      <dependency>      
+	<groupId>org.renci.canvas.primer</groupId>
+	<artifactId>primer-commons</artifactId>
+      	<version>0.0.3-SNAPSHOT</version>	
+      </dependency>          
       <dependency>
 	<groupId>org.renci.canvas.canvas-dao</groupId>
 	<artifactId>canvas-dao-api</artifactId>
@@ -65,6 +76,11 @@
 	<artifactId>canvas-dao-jpa</artifactId>
       	<version>${renci.canvas.dao.version}</version>	
       </dependency>
+      <dependency>
+	<groupId>org.renci.genbank</groupId>
+	<artifactId>gbff-parser</artifactId>
+	<version>${gbff.parser.version}</version>
+      </dependency>      
     </dependencies>
   </dependencyManagement>
   <build>
@@ -80,6 +96,7 @@
   </build>  
   <modules>
     <module>primer-datasource</module>
+    <module>primer-commons</module>    
     <module>primer-features</module>        
     <module>primer-dao</module>
     <module>primer-modules</module>        
