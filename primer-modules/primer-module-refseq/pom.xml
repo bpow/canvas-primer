@@ -13,6 +13,16 @@
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
   </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.renci.genbank</groupId>
+      <artifactId>gbff-parser</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.renci.gff</groupId>
+      <artifactId>gff3-parser</artifactId>
+    </dependency>	          
+  </dependencies>  
   <build>
     <plugins>
       <plugin>
