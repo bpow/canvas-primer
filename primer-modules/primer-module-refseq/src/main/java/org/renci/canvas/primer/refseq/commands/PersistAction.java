@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -90,88 +91,105 @@ public class PersistAction implements Action {
     public Object execute() throws Exception {
         logger.debug("ENTERING execute()");
 
-        List<String> remoteFileNames = FTPFactory.ncbiListRemoteFiles("/refseq/release/release-catalog", "release");
-        if (CollectionUtils.isEmpty(remoteFileNames)) {
-            logger.error("No remote files found to get version");
-            return null;
-        }
+        Executors.newSingleThreadExecutor().execute(() -> {
+            long start = System.currentTimeMillis();
 
-        List<GroupingType> allGroupingTypes = canvasDAOBeanService.getGroupingTypeDAO().findAll();
+            try {
+                List<String> remoteFileNames = FTPFactory.ncbiListRemoteFiles("/refseq/release/release-catalog", "release");
+                if (CollectionUtils.isEmpty(remoteFileNames)) {
+                    logger.error("No remote files found to get version");
+                    return;
+                }
 
-        String first = remoteFileNames.get(0);
-        String refseqVersion = first.substring(7, first.indexOf("."));
+                List<GroupingType> allGroupingTypes = canvasDAOBeanService.getGroupingTypeDAO().findAll();
 
-        Path outputPath = Paths.get(System.getProperty("karaf.data"), "tmp", "refseq");
-        File outputDir = outputPath.toFile();
-        outputDir.mkdirs();
+                String first = remoteFileNames.get(0);
+                String refseqVersion = first.substring(7, first.indexOf("."));
+                logger.info("refseqVersion = {}", refseqVersion);
 
-        List<File> gbffFiles = FTPFactory.ncbiDownloadFiles(outputDir, "/refseq/release/vertebrate_mammalian", "vertebrate_mammalian",
-                "rna.gbff.gz");
+                Path outputPath = Paths.get(System.getProperty("karaf.data"), "tmp", "refseq");
+                File outputDir = outputPath.toFile();
+                outputDir.mkdirs();
 
-        Path mappingsPath = Paths.get(System.getProperty("karaf.data"), "tmp", "refseq", "mappings");
-        File mappingsDir = mappingsPath.toFile();
-        mappingsDir.mkdirs();
+                List<File> gbffFiles = FTPFactory.ncbiDownloadFiles(outputDir, "/refseq/release/vertebrate_mammalian",
+                        "vertebrate_mammalian", "rna.gbff.gz");
 
-        List<File> alignmentFiles = FTPFactory.ncbiDownloadFiles(mappingsDir, "/refseq/H_sapiens/alignments", "GCF", "gff3");
-        List<GenomeRef> allGenomeRefs = canvasDAOBeanService.getGenomeRefDAO().findAll();
-        GenomeRef genomeRef = allGenomeRefs.stream().max((a, b) -> a.getId().compareTo(b.getId())).get();
-        List<File> alignmentFiles2Use = new ArrayList<>();
-        if (genomeRef.getName().equals("38.2")) {
-            String pipelineVersion = "GCF_000001405.28";
-            alignmentFiles2Use.addAll(
-                    alignmentFiles.stream().filter(a -> a.getName().contains(pipelineVersion) && !a.getName().contains("refseqgene"))
+                Path mappingsPath = Paths.get(System.getProperty("karaf.data"), "tmp", "refseq", "mappings");
+                File mappingsDir = mappingsPath.toFile();
+                mappingsDir.mkdirs();
+
+                List<File> alignmentFiles = FTPFactory.ncbiDownloadFiles(mappingsDir, "/refseq/H_sapiens/alignments", "GCF", "gff3");
+                List<GenomeRef> allGenomeRefs = canvasDAOBeanService.getGenomeRefDAO().findAll();
+                GenomeRef genomeRef = allGenomeRefs.stream().max((a, b) -> a.getId().compareTo(b.getId())).get();
+                logger.info(genomeRef.toString());
+
+                List<File> alignmentFiles2Use = new ArrayList<>();
+                if (genomeRef.getName().equals("38.2")) {
+                    String pipelineVersion = "GCF_000001405.28";
+                    alignmentFiles2Use.addAll(alignmentFiles.stream()
+                            .filter(a -> a.getName().contains(pipelineVersion) && !a.getName().contains("refseqgene"))
                             .collect(Collectors.toList()));
-        }
+                }
 
-        // List<File> fnaFiles = FTPFactory.ncbiDownloadFiles(outputDir, "/refseq/release/vertebrate_mammalian", "vertebrate_mammalian",
-        // "rna.fna.gz");
+                // List<File> fnaFiles = FTPFactory.ncbiDownloadFiles(outputDir, "/refseq/release/vertebrate_mammalian",
+                // "vertebrate_mammalian",
+                // "rna.fna.gz");
 
-        List<GBFFFilter> filters = Arrays.asList(
-                new GBFFFilter[] { new GBFFSequenceAccessionPrefixFilter(Arrays.asList(new String[] { "NM_", "NR_", "XM_", "XR_" })),
+                List<GBFFFilter> filters = Arrays.asList(new GBFFFilter[] {
+                        new GBFFSequenceAccessionPrefixFilter(Arrays.asList(new String[] { "NM_", "NR_", "XM_", "XR_" })),
                         new GBFFSourceOrganismNameFilter("Homo sapiens"), new GBFFFeatureSourceOrganismNameFilter("Homo sapiens"),
                         new GBFFFeatureTypeNameFilter("CDS"), new GBFFFeatureTypeNameFilter("source") });
 
-        GBFFAndFilter gbffFilter = new GBFFAndFilter(filters);
+                GBFFAndFilter gbffFilter = new GBFFAndFilter(filters);
 
-        for (File f : gbffFiles) {
+                for (File f : gbffFiles) {
 
-            logger.info("parsing GenBankFlatFile: {}", f.getAbsolutePath());
-            List<Sequence> sequenceList = gbffMgr.deserialize(gbffFilter, f);
+                    logger.info("parsing GenBankFlatFile: {}", f.getAbsolutePath());
+                    List<Sequence> sequenceList = gbffMgr.deserialize(gbffFilter, f);
 
-            if (CollectionUtils.isEmpty(sequenceList)) {
-                logger.warn("no sequences found");
-                continue;
-            }
-
-            logger.info("sequenceList.size(): {}", sequenceList.size());
-
-            ExecutorService es = Executors.newFixedThreadPool(4);
-
-            for (Sequence sequence : sequenceList) {
-                es.submit(() -> {
-                    try {
-
-                        Transcript transcript = persistTranscript(refseqVersion, sequence);
-
-                        List<org.renci.gbff.model.Feature> features = sequence.getFeatures();
-
-                        persistGenes(refseqVersion, transcript,
-                                allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get(), features);
-
-                        persistCodingSequence(refseqVersion, transcript,
-                                allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get(), features);
-
-                        persistFeatures(refseqVersion, transcript, allGroupingTypes, features);
-
-                        persistMappings(refseqVersion, genomeRef, transcript, alignmentFiles2Use);
-
-                    } catch (Exception e) {
-                        logger.error(e.getMessage(), e);
+                    if (CollectionUtils.isEmpty(sequenceList)) {
+                        logger.warn("no sequences found");
+                        continue;
                     }
-                });
-            }
 
-        }
+                    logger.info("sequenceList.size(): {}", sequenceList.size());
+
+                    ExecutorService es = Executors.newFixedThreadPool(6);
+
+                    for (Sequence sequence : sequenceList) {
+                        es.submit(() -> {
+                            try {
+
+                                Transcript transcript = persistTranscript(refseqVersion, sequence);
+
+                                List<org.renci.gbff.model.Feature> features = sequence.getFeatures();
+
+                                persistGenes(refseqVersion, transcript,
+                                        allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get(), features);
+
+                                persistCodingSequence(refseqVersion, transcript,
+                                        allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get(), features);
+
+                                persistFeatures(refseqVersion, transcript, allGroupingTypes, features);
+
+                                persistMappings(refseqVersion, genomeRef, transcript, alignmentFiles2Use);
+
+                            } catch (Exception e) {
+                                logger.error(e.getMessage(), e);
+                            }
+                        });
+                    }
+                    es.shutdown();
+                    es.awaitTermination(1L, TimeUnit.DAYS);
+
+                }
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
+            long end = System.currentTimeMillis();
+            logger.info("duration = {}", String.format("%d seconds", (end - start) / 1000D));
+
+        });
 
         return null;
     }
@@ -203,6 +221,7 @@ public class PersistAction implements Action {
         transcriptMaps.setScore(transcriptMaps.getIdentity());
         transcriptMaps.setExonCount(records.size());
         transcriptMaps.setId(canvasDAOBeanService.getTranscriptMapsDAO().save(transcriptMaps));
+        logger.info(transcriptMaps.toString());
 
         records.sort((a, b) -> a.getStart().compareTo(b.getStart()));
 
@@ -225,6 +244,7 @@ public class PersistAction implements Action {
             exon.setTranscriptEnd(Integer.valueOf(exonStop));
 
             canvasDAOBeanService.getTranscriptMapsExonsDAO().save(exon);
+            logger.info(exon.toString());
             transcriptMaps.getExons().add(exon);
 
         }
@@ -279,11 +299,13 @@ public class PersistAction implements Action {
                 }
                 groupingType = allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get();
             }
+            logger.info(groupingType.toString());
 
             RegionGroup regionGroup = new RegionGroup();
             regionGroup.setTranscript(transcript);
             regionGroup.setGroupingType(groupingType);
             regionGroup.setId(canvasDAOBeanService.getRegionGroupDAO().save(regionGroup));
+            logger.info(regionGroup.toString());
 
             for (Pair<String, String> pair : rangeList) {
 
@@ -314,6 +336,7 @@ public class PersistAction implements Action {
 
                 RegionGroupRegion rgr = new RegionGroupRegion(rgrPK);
                 rgr.setRegionGroup(regionGroup);
+                logger.info(rgr.toString());
                 canvasDAOBeanService.getRegionGroupRegionDAO().save(rgr);
 
             }
@@ -321,6 +344,7 @@ public class PersistAction implements Action {
             Feature feature = new Feature(refseqVersion, note);
             feature.setType(featureType);
             feature.setRegionGroup(regionGroup);
+            logger.info(feature.toString());
             canvasDAOBeanService.getFeatureDAO().save(feature);
 
         }
@@ -359,6 +383,7 @@ public class PersistAction implements Action {
             } else {
                 refseqCodingSequence = foundRefSeqCodingSequences.get(0);
             }
+            logger.info(refseqCodingSequence.toString());
 
             String location = codingSequenceFeature.getLocation();
             Integer start = null;
@@ -384,6 +409,7 @@ public class PersistAction implements Action {
 
                 RegionGroupRegionPK rgrPK = new RegionGroupRegionPK(start, stop, "exact", "exact", regionGroup.getId());
                 RegionGroupRegion rgr = new RegionGroupRegion(rgrPK);
+                logger.info(rgr.toString());
                 rgr.setRegionGroup(regionGroup);
                 canvasDAOBeanService.getRegionGroupRegionDAO().save(rgr);
 
@@ -398,6 +424,7 @@ public class PersistAction implements Action {
                 if (foundCDSECNumber == null) {
                     CDSECNumber cdsECNumber = new CDSECNumber(key);
                     cdsECNumber.setRefseqCodingSequence(refseqCodingSequence);
+                    logger.info(cdsECNumber.toString());
                     canvasDAOBeanService.getCDSECNumberDAO().save(cdsECNumber);
                 }
             }
@@ -413,6 +440,7 @@ public class PersistAction implements Action {
                         cdsTranslationException.setRefseqCodingSequence(refseqCodingSequence);
                         cdsTranslationException.setStopLocation(te.getRange().getMaximum());
                         cdsTranslationException.setAminoAcid(te.getAminoAcid());
+                        logger.info(cdsTranslationException.toString());
                         canvasDAOBeanService.getCDSTranslationExceptionDAO().save(cdsTranslationException);
                     }
 
@@ -478,6 +506,7 @@ public class PersistAction implements Action {
                     regionGroup = foundRegionGroups.get(0);
                     regionGroups = new HashSet<>(foundRegionGroups);
                 }
+                logger.info(regionGroup.toString());
 
                 transcript.setRegionGroups(regionGroups);
                 canvasDAOBeanService.getTranscriptDAO().save(transcript);
@@ -488,6 +517,7 @@ public class PersistAction implements Action {
                 if (foundRGR == null) {
                     RegionGroupRegion rgr = new RegionGroupRegion(rgrPK);
                     rgr.setRegionGroup(regionGroup);
+                    logger.info(rgr.toString());
                     canvasDAOBeanService.getRegionGroupRegionDAO().save(rgr);
                 }
 
@@ -504,6 +534,7 @@ public class PersistAction implements Action {
             } else {
                 annotationGene = foundAnnotationGenes.get(0);
             }
+            logger.info(annotationGene.toString());
 
             List<AnnotationGeneExternalId> annotationGeneExternalIds = canvasDAOBeanService.getAnnotationGeneExternalIdDAO()
                     .findByExternalIdAndNamespace(refseqGene.getId(), "refseq");
@@ -518,6 +549,7 @@ public class PersistAction implements Action {
 
                 AnnotationGeneExternalId annotationGeneExternalId = new AnnotationGeneExternalId(annotationGeneExternalIdPK);
                 annotationGeneExternalId.setGene(annotationGene);
+                logger.info(annotationGeneExternalId.toString());
                 canvasDAOBeanService.getAnnotationGeneExternalIdDAO().save(annotationGeneExternalId);
                 externalIdSet.add(annotationGeneExternalId);
 
@@ -549,8 +581,10 @@ public class PersistAction implements Action {
                         AnnotationGeneSynonym annotationGeneSynonym = new AnnotationGeneSynonym(annotationGeneSynonymPK);
                         annotationGeneSynonym.setGene(annotationGene);
                         annotationGeneSynonym.setKey(canvasDAOBeanService.getAnnotationGeneSynonymDAO().save(annotationGeneSynonym));
+                        logger.info(annotationGeneSynonym.toString());
                         annotationGeneSynonymSet.add(annotationGeneSynonym);
                     } else {
+                        logger.info(foundAnnotationGeneSynonym.toString());
                         annotationGeneSynonymSet.add(foundAnnotationGeneSynonym);
                     }
                 }
@@ -582,12 +616,14 @@ public class PersistAction implements Action {
         if (foundTranscriptRefSeqVersion == null) {
             TranscriptRefSeqVersion transcriptRefSeqVersion = new TranscriptRefSeqVersion(transcriptRefSeqVersionPK);
             transcriptRefSeqVersion.setTranscript(transcript);
+            logger.info(transcriptRefSeqVersion.toString());
             canvasDAOBeanService.getTranscriptRefSeqVersionDAO().save(transcriptRefSeqVersion);
 
             transcript.getRefseqVersions().add(transcriptRefSeqVersion);
             canvasDAOBeanService.getTranscriptDAO().save(transcript);
         }
 
+        logger.info(transcript.toString());
         return transcript;
     }
 

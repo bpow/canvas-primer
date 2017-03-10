@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,6 +52,8 @@ public class PersistAction implements Action {
 
     private static final Logger logger = LoggerFactory.getLogger(PersistAction.class);
 
+    private static final Pattern locationPattern = Pattern.compile("(?<chr>\\d+)[a-z]\\.?\\d+?");
+
     @Reference
     private CANVASDAOBeanService canvasDAOBeanService;
 
@@ -65,9 +68,8 @@ public class PersistAction implements Action {
     public Object execute() throws Exception {
         logger.debug("ENTERING execute()");
 
-        final Pattern locationPattern = Pattern.compile("(?<chr>\\d+)[a-z]\\.?\\d+?");
-
         Executors.newSingleThreadExecutor().execute(() -> {
+            long start = System.currentTimeMillis();
             try {
 
                 final List<HGNCStatusType> statusTypeList = canvasDAOBeanService.getHGNCStatusTypeDAO().findAll();
@@ -86,7 +88,7 @@ public class PersistAction implements Action {
                 if (CollectionUtils.isNotEmpty(searchResponseDocs)) {
                     logger.info("searchResponseDocs.size(): {}", searchResponseDocs.size());
 
-                    ExecutorService es = Executors.newFixedThreadPool(8);
+                    ExecutorService es = Executors.newFixedThreadPool(10);
                     for (HGNCSearchResponseDoc searchResponseDoc : searchResponseDocs) {
                         es.submit(() -> {
 
@@ -226,12 +228,17 @@ public class PersistAction implements Action {
 
                         });
                     }
-
+                    es.shutdown();
+                    es.awaitTermination(1L, TimeUnit.DAYS);
                 }
 
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
+
+            long end = System.currentTimeMillis();
+            logger.info("duration = {}", String.format("%d seconds", (end - start) / 1000D));
+
         });
 
         return null;
