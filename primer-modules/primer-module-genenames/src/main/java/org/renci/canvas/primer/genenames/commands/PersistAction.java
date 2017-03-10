@@ -134,8 +134,8 @@ public class PersistAction implements Action {
                                                 .filter(a -> a.getName().equals(fetchResponseDoc.getLocusGroup())).findFirst().get());
                                         hgncGene.setLocusType(locusTypeList.stream()
                                                 .filter(a -> a.getName().equals(fetchResponseDoc.getLocusType())).findFirst().get());
-                                        hgncGene.setDateModified(
-                                                DateUtils.parseDate(fetchResponseDoc.getDateModified(), "yyyy-MM-dd'T'HH:mm:ss'Z'"));
+                                        hgncGene.setDateModified(new java.sql.Date(DateUtils
+                                                .parseDate(fetchResponseDoc.getDateModified(), "yyyy-MM-dd'T'HH:mm:ss'Z'").getTime()));
                                         if (StringUtils.isNotEmpty(fetchResponseDoc.getLocation())) {
                                             hgncGene.setChromosomeRegion(fetchResponseDoc.getLocation());
                                             Matcher m = locationPattern.matcher(fetchResponseDoc.getLocation());
@@ -144,9 +144,9 @@ public class PersistAction implements Action {
                                                 hgncGene.setChromosome(chromosome);
                                             }
                                         }
-                                        logger.info(hgncGene.toString());
                                         HGNCGene foundGene = canvasDAOBeanService.getHGNCGeneDAO().findById(hgncGene.getId());
                                         if (foundGene == null) {
+                                            logger.info(hgncGene.toString());
                                             canvasDAOBeanService.getHGNCGeneDAO().save(hgncGene);
                                         }
 
