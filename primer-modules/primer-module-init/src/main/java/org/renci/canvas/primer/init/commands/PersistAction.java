@@ -14,6 +14,7 @@ import org.renci.canvas.dao.clinbin.model.IncidentalStatusType;
 import org.renci.canvas.dao.clinbin.model.MaxFrequencySource;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.SequenceType;
+import org.renci.canvas.dao.refseq.model.GroupingType;
 import org.renci.canvas.dao.refseq.model.LocationType;
 import org.renci.canvas.dao.var.model.VariantType;
 import org.slf4j.Logger;
@@ -37,6 +38,17 @@ public class PersistAction implements Action {
         logger.debug("ENTERING execute()");
 
         // these should all become Java enums
+
+        logger.info("Loading GroupingTypes");
+        List<String> gtList = Arrays.asList("single", "order", "join");
+        List<GroupingType> groupingTypeList = canvasDAOBeanService.getGroupingTypeDAO().findAll();
+        for (String gt : gtList) {
+            if (!groupingTypeList.stream().filter(a -> a.getName().equals(gt)).findAny().isPresent()) {
+                GroupingType groupingType = new GroupingType(gt);
+                canvasDAOBeanService.getGroupingTypeDAO().save(groupingType);
+            }
+        }
+
         logger.info("Loading VariantTypes");
         List<String> vtList = Arrays.asList("snp", "ins", "del", "sub", "ref");
         List<VariantType> variantTypeList = canvasDAOBeanService.getVariantTypeDAO().findAll();
