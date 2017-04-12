@@ -47,14 +47,6 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.aries.jpa</groupId>
-      <artifactId>jpa-features</artifactId>
-      <version>2.6.0</version>
-      <type>xml</type>
-      <classifier>features</classifier>
-      <scope>runtime</scope>
-    </dependency>        
-    <dependency>
       <groupId>org.apache.cxf.karaf</groupId>
       <artifactId>apache-cxf</artifactId>
       <version>${cxf.version}</version>
@@ -155,7 +147,7 @@
 	    <feature>transaction-api</feature>
 	    <feature>transaction</feature>
 	    <feature>jms</feature>
-	    <feature>jpa/2.6.0</feature>
+	    <feature>jpa</feature>
 	    <feature>hibernate</feature>	    	    
 	    <feature>canvas-dao</feature>
 	    <feature>primer-dao</feature>
