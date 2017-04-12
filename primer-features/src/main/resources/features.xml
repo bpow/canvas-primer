@@ -22,7 +22,7 @@
     <bundle>mvn:org.postgresql/postgresql/${postgresql.version}</bundle>
     <bundle>mvn:org.apache.servicemix.bundles/org.apache.servicemix.bundles.aspectj/1.7.4_1</bundle>    
     <bundle>mvn:com.itextpdf/itextpdf/5.4.4</bundle>
-    <bundle>mvn:com.google.guava/guava/19.0</bundle>    
+    <bundle>mvn:com.google.guava/guava/${guava.version}</bundle>    
     <bundle>mvn:org.apache.geronimo.javamail/geronimo-javamail_1.4_mail/1.8</bundle>
     <bundle>mvn:org.apache.derby/derby/10.11.1.1</bundle>
     <bundle>mvn:javax.xml.stream/com.springsource.javax.xml.stream/1.0.1</bundle>
@@ -32,13 +32,16 @@
     <bundle>mvn:net.sourceforge.jopt-simple/com.springsource.joptsimple/3.0.0</bundle>
     <bundle>mvn:org.jaxen/com.springsource.org.jaxen/1.1.1</bundle>
     <bundle>mvn:org.renci.commons/commons-exec/${renci.commons.version}</bundle>
-    <bundle>mvn:org.renci.osgi.bundles/biojava-4.2.4-bundle/0.0.1</bundle>
+    <!-- <bundle>mvn:org.renci.osgi.bundles/biojava-4.2.7-bundle/0.0.1</bundle> -->
     <bundle>mvn:org.renci.osgi.bundles/snappy-1.0.3-rc3-bundle/0.0.1</bundle>
     <bundle>mvn:org.renci.osgi.bundles/jfreechart-1.0.17-bundle/0.0.2</bundle>
     <bundle>mvn:org.renci.osgi.bundles/jbzip2-0.9-bundle/0.0.1</bundle>
     <bundle>mvn:org.renci.osgi.bundles/htsjdk-${htsjdk.version}-bundle/0.0.1</bundle>
     <bundle>mvn:org.renci.genbank/gbff-parser/0.0.27</bundle>
-    <bundle>mvn:org.renci.gff/gff3-parser/0.0.7</bundle>    
+    <bundle>mvn:org.renci.gff/gff3-parser/0.0.7</bundle>
+    <bundle>mvn:org.renci.hgvs/hgvs-parser/0.0.7-SNAPSHOT</bundle>    
+    <bundle>mvn:org.renci.clinvar/clinvar-public/1.42</bundle>
+    <bundle>mvn:org.renci.gerese4j/gerese4j-core/1.0.0</bundle>
     <bundle>mvn:org.apache.geronimo.specs/geronimo-annotation_1.0_spec/1.1.1</bundle>
     <bundle>mvn:org.apache.geronimo.specs/geronimo-servlet_2.5_spec/1.2</bundle>
     <bundle>mvn:org.apache.geronimo.specs/geronimo-el_1.0_spec/1.0.1</bundle>    
@@ -63,10 +66,11 @@
   </feature>
   
   <feature name="primer-modules" version="${project.version}" resolver="(obr)">
-    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-init/${project.version}</bundle>    
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-init/${project.version}</bundle>
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-genome-reference/${project.version}</bundle>                
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-genenames/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-refseq/${project.version}</bundle>
-    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-clinvar/${project.version}</bundle>        
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-clinvar/${project.version}</bundle>
   </feature>  
   
 </features>
