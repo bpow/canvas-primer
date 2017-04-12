@@ -27,6 +27,10 @@
       <artifactId>htsjdk</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
       <groupId>commons-net</groupId>
       <artifactId>commons-net</artifactId>
     </dependency>    
@@ -75,7 +79,17 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
-    </dependency>        
+    </dependency>
+    <!-- <dependency>       -->
+    <!--   <groupId>org.biojava</groupId> -->
+    <!--   <artifactId>biojava-core</artifactId> -->
+    <!--   <scope>provided</scope>       -->
+    <!-- </dependency> -->
+    <!-- <dependency>   -->
+    <!--   <groupId>org.biojava</groupId> -->
+    <!--   <artifactId>biojava-sequencing</artifactId> -->
+    <!--   <scope>provided</scope>       -->
+    <!-- </dependency>     -->
   </dependencies>    
   <modules>
     <module>primer-module-init</module>
@@ -84,6 +98,7 @@
     <module>primer-module-dbsnp</module>
     <module>primer-module-esp</module>
     <module>primer-module-hgmd</module>
+    <module>primer-module-ncgenes</module>
     <module>primer-module-genome-reference</module>
     <module>primer-module-omim</module>
     <module>primer-module-refseq</module>
