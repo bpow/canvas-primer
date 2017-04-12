@@ -4,7 +4,7 @@
     <artifactId>primer</artifactId>
     <version>0.0.3-SNAPSHOT</version>
   </parent>
-  <name>CANVAS :: Primer :: DAO :: API</name>
+  <name>CANVAS :: Primer :: Commons</name>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas.primer</groupId>
   <artifactId>primer-commons</artifactId>
