@@ -13,6 +13,12 @@
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
   </properties>
+  <dependencies>
+    <dependency>      
+      <groupId>org.renci.gerese4j</groupId>
+      <artifactId>gerese4j-core</artifactId>
+    </dependency>
+  </dependencies>    
   <build>
     <plugins>
       <plugin>
