@@ -24,7 +24,7 @@ public class FTPFactory {
 
     public static File download(File outputDir, String host, String path, String name) {
         logger.info("downloading: {}", String.format("%s:%s/%s", host, path, name));
-        File ret = new File("/tmp", name);
+        File ret = new File(outputDir, name);
         if (ret.exists()) {
             return ret;
         }
@@ -114,6 +114,10 @@ public class FTPFactory {
     }
 
     public static List<String> listRemoteFiles(String host, String path, String prefix, String suffix) {
+        logger.debug("ENTERING listRemoteFiles(String, String, String, String)");
+
+        logger.info("host: {}", host);
+        logger.info("path: {}", path);
 
         List<String> ret = new ArrayList<>();
 
@@ -134,17 +138,20 @@ public class FTPFactory {
 
             List<FTPFile> ftpFileList = null;
             if (StringUtils.isNotEmpty(prefix) && StringUtils.isNotEmpty(suffix)) {
+                logger.info("prefix: {}", prefix);
+                logger.info("suffix: {}", suffix);
                 ftpFileList = Arrays.asList(ftpClient.listFiles(path, a -> a.getName().startsWith(prefix) && a.getName().endsWith(suffix)));
             } else if (StringUtils.isNotEmpty(prefix) && StringUtils.isEmpty(suffix)) {
+                logger.info("prefix: {}", prefix);
                 ftpFileList = Arrays.asList(ftpClient.listFiles(path, a -> a.getName().startsWith(prefix)));
             } else if (StringUtils.isEmpty(prefix) && StringUtils.isNotEmpty(suffix)) {
+                logger.info("suffix: {}", suffix);
                 ftpFileList = Arrays.asList(ftpClient.listFiles(path, a -> a.getName().endsWith(suffix)));
             }
 
             if (CollectionUtils.isNotEmpty(ftpFileList)) {
-                for (FTPFile ftpFile : ftpFileList) {
-                    ret.add(ftpFile.getName());
-                }
+                logger.info("ftpFileList.size(): {}", ftpFileList.size());
+                ftpFileList.forEach(a -> ret.add(a.getName()));
             }
 
         } catch (IOException e) {
