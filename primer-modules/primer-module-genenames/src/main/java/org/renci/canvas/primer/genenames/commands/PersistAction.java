@@ -107,22 +107,22 @@ public class PersistAction implements Action {
 
                                     for (HGNCFetchResponseDoc fetchResponseDoc : fetchResponseDocs) {
 
-                                        if (!statusTypeList.stream().filter(a -> a.getName().equals(fetchResponseDoc.getStatus())).findAny()
+                                        if (!statusTypeList.stream().filter(a -> a.getId().equals(fetchResponseDoc.getStatus())).findAny()
                                                 .isPresent()) {
                                             HGNCStatusType statusType = new HGNCStatusType(fetchResponseDoc.getStatus());
                                             canvasDAOBeanService.getHGNCStatusTypeDAO().save(statusType);
                                             statusTypeList.add(statusType);
                                         }
 
-                                        if (!locusGroupList.stream().filter(a -> a.getName().equals(fetchResponseDoc.getLocusGroup()))
+                                        if (!locusGroupList.stream().filter(a -> a.getId().equals(fetchResponseDoc.getLocusGroup()))
                                                 .findAny().isPresent()) {
                                             LocusGroup locusGroup = new LocusGroup(fetchResponseDoc.getLocusGroup());
                                             canvasDAOBeanService.getLocusGroupDAO().save(locusGroup);
                                             locusGroupList.add(locusGroup);
                                         }
 
-                                        if (!locusTypeList.stream().filter(a -> a.getName().equals(fetchResponseDoc.getLocusType()))
-                                                .findAny().isPresent()) {
+                                        if (!locusTypeList.stream().filter(a -> a.getId().equals(fetchResponseDoc.getLocusType())).findAny()
+                                                .isPresent()) {
                                             LocusType locusType = new LocusType(fetchResponseDoc.getLocusType());
                                             canvasDAOBeanService.getLocusTypeDAO().save(locusType);
                                             locusTypeList.add(locusType);
@@ -131,11 +131,11 @@ public class PersistAction implements Action {
                                         HGNCGene hgncGene = new HGNCGene(Integer.valueOf(fetchResponseDoc.getHgncId().split(":")[1]),
                                                 fetchResponseDoc.getName(), fetchResponseDoc.getSymbol());
                                         hgncGene.setStatus(statusTypeList.stream()
-                                                .filter(a -> a.getName().equals(fetchResponseDoc.getStatus())).findFirst().get());
+                                                .filter(a -> a.getId().equals(fetchResponseDoc.getStatus())).findFirst().get());
                                         hgncGene.setLocusGroup(locusGroupList.stream()
-                                                .filter(a -> a.getName().equals(fetchResponseDoc.getLocusGroup())).findFirst().get());
+                                                .filter(a -> a.getId().equals(fetchResponseDoc.getLocusGroup())).findFirst().get());
                                         hgncGene.setLocusType(locusTypeList.stream()
-                                                .filter(a -> a.getName().equals(fetchResponseDoc.getLocusType())).findFirst().get());
+                                                .filter(a -> a.getId().equals(fetchResponseDoc.getLocusType())).findFirst().get());
                                         hgncGene.setDateModified(new java.sql.Date(DateUtils
                                                 .parseDate(fetchResponseDoc.getDateModified(), "yyyy-MM-dd'T'HH:mm:ss'Z'").getTime()));
                                         if (StringUtils.isNotEmpty(fetchResponseDoc.getLocation())) {
@@ -169,10 +169,10 @@ public class PersistAction implements Action {
                                         AnnotationGeneExternalIdPK annotationGeneExternalIdPK = new AnnotationGeneExternalIdPK(
                                                 hgncGene.getId(), annotationGene.getId(), "HGNC");
 
-                                        if (CollectionUtils.isEmpty(annotationGeneExternalIds)
-                                                || (CollectionUtils.isNotEmpty(annotationGeneExternalIds) && !annotationGeneExternalIds
-                                                        .stream().filter(a -> a.getKey().equals(annotationGeneExternalIdPK)).findAny()
-                                                        .isPresent())) {
+                                        if (CollectionUtils.isEmpty(annotationGeneExternalIds) || (CollectionUtils
+                                                .isNotEmpty(annotationGeneExternalIds)
+                                                && !annotationGeneExternalIds.stream()
+                                                        .filter(a -> a.getId().equals(annotationGeneExternalIdPK)).findAny().isPresent())) {
 
                                             AnnotationGeneExternalId annotationGeneExternalId = new AnnotationGeneExternalId(
                                                     annotationGeneExternalIdPK);
@@ -208,7 +208,7 @@ public class PersistAction implements Action {
                                                     AnnotationGeneSynonym annotationGeneSynonym = new AnnotationGeneSynonym(
                                                             annotationGeneSynonymPK);
                                                     annotationGeneSynonym.setGene(annotationGene);
-                                                    annotationGeneSynonym.setKey(
+                                                    annotationGeneSynonym.setId(
                                                             canvasDAOBeanService.getAnnotationGeneSynonymDAO().save(annotationGeneSynonym));
                                                     annotationGeneSynonymSet.add(annotationGeneSynonym);
                                                 } else {
