@@ -1,2 +1,3 @@
-org.renci.canvas.primer.gr.commands.DownloadAction
+org.renci.canvas.primer.gr.commands.CreateCombinedFastaFileAction
+org.renci.canvas.primer.gr.commands.DownloadAndSerializeAction
 org.renci.canvas.primer.gr.commands.PersistAction
