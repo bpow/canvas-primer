@@ -131,9 +131,8 @@ public class PersistAction implements Action {
                             .collect(Collectors.toList()));
                 }
 
-                // List<File> fnaFiles = FTPFactory.ncbiDownloadFiles(outputDir, "/refseq/release/vertebrate_mammalian",
-                // "vertebrate_mammalian",
-                // "rna.fna.gz");
+                List<File> fnaFiles = FTPFactory.ncbiDownloadFiles(outputDir, "/refseq/release/vertebrate_mammalian",
+                        "vertebrate_mammalian", "rna.fna.gz");
 
                 List<GBFFFilter> filters = Arrays.asList(new GBFFFilter[] {
                         new GBFFSequenceAccessionPrefixFilter(Arrays.asList(new String[] { "NM_", "NR_", "XM_", "XR_" })),
@@ -165,10 +164,10 @@ public class PersistAction implements Action {
                                 List<org.renci.gbff.model.Feature> features = sequence.getFeatures();
 
                                 persistGenes(refseqVersion, transcript,
-                                        allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get(), features);
+                                        allGroupingTypes.stream().filter(a -> a.getId().equals("single")).findAny().get(), features);
 
                                 persistCodingSequence(refseqVersion, transcript,
-                                        allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get(), features);
+                                        allGroupingTypes.stream().filter(a -> a.getId().equals("single")).findAny().get(), features);
 
                                 persistFeatures(refseqVersion, transcript, allGroupingTypes, features);
 
@@ -187,7 +186,7 @@ public class PersistAction implements Action {
                 logger.error(e.getMessage(), e);
             }
             long end = System.currentTimeMillis();
-            logger.info("duration = {}", String.format("%d seconds", (end - start) / 1000D));
+            logger.info("duration = {}", String.format("%d seconds", (end - start) / 1000));
 
         });
 
@@ -201,7 +200,7 @@ public class PersistAction implements Action {
 
         for (File alignmentFile : alignmentFiles) {
             GFF3Manager gff3Mgr = GFF3Manager.getInstance(alignmentFile);
-            List<GFF3Record> results = gff3Mgr.deserialize(new GFF3AttributeValueFilter("Target", transcript.getVersionId()));
+            List<GFF3Record> results = gff3Mgr.deserialize(new GFF3AttributeValueFilter("Target", transcript.getId()));
             if (CollectionUtils.isNotEmpty(results)) {
                 results.forEach(records::add);
             }
@@ -277,7 +276,7 @@ public class PersistAction implements Action {
 
             GroupingType groupingType;
             if (gbffFeature.getLocation().startsWith("join")) {
-                groupingType = allGroupingTypes.stream().filter(a -> a.getName().equals("join")).findAny().get();
+                groupingType = allGroupingTypes.stream().filter(a -> a.getId().equals("join")).findAny().get();
                 Arrays.asList(location.substring(6, location.length() - 1).split(",")).forEach(a -> {
                     Matcher m = locationPattern.matcher(a);
                     if (m.find()) {
@@ -291,13 +290,13 @@ public class PersistAction implements Action {
                         rangeList.add(Pair.of(m.group("start"), m.group("stop")));
                     }
                 });
-                groupingType = allGroupingTypes.stream().filter(a -> a.getName().equals("order")).findAny().get();
+                groupingType = allGroupingTypes.stream().filter(a -> a.getId().equals("order")).findAny().get();
             } else {
                 Matcher m = locationPattern.matcher(location);
                 if (m.find()) {
                     rangeList.add(Pair.of(m.group("start"), m.group("stop")));
                 }
-                groupingType = allGroupingTypes.stream().filter(a -> a.getName().equals("single")).findAny().get();
+                groupingType = allGroupingTypes.stream().filter(a -> a.getId().equals("single")).findAny().get();
             }
             logger.info(groupingType.toString());
 
@@ -498,7 +497,7 @@ public class PersistAction implements Action {
 
                 Set<RegionGroup> regionGroups;
                 List<RegionGroup> foundRegionGroups = canvasDAOBeanService.getRegionGroupDAO()
-                        .findByTranscriptIdAndGroupingType(transcript.getVersionId(), singleGroupingType.getName());
+                        .findByTranscriptIdAndGroupingType(transcript.getId(), singleGroupingType.getId());
                 if (CollectionUtils.isEmpty(foundRegionGroups)) {
                     regionGroup.setId(canvasDAOBeanService.getRegionGroupDAO().save(regionGroup));
                     regionGroups = transcript.getRegionGroups();
@@ -545,7 +544,7 @@ public class PersistAction implements Action {
 
             if (CollectionUtils.isEmpty(annotationGeneExternalIds)
                     || (CollectionUtils.isNotEmpty(annotationGeneExternalIds) && !annotationGeneExternalIds.stream()
-                            .filter(a -> a.getKey().equals(annotationGeneExternalIdPK)).findAny().isPresent())) {
+                            .filter(a -> a.getId().equals(annotationGeneExternalIdPK)).findAny().isPresent())) {
 
                 AnnotationGeneExternalId annotationGeneExternalId = new AnnotationGeneExternalId(annotationGeneExternalIdPK);
                 annotationGeneExternalId.setGene(annotationGene);
@@ -580,7 +579,7 @@ public class PersistAction implements Action {
                     if (foundAnnotationGeneSynonym == null) {
                         AnnotationGeneSynonym annotationGeneSynonym = new AnnotationGeneSynonym(annotationGeneSynonymPK);
                         annotationGeneSynonym.setGene(annotationGene);
-                        annotationGeneSynonym.setKey(canvasDAOBeanService.getAnnotationGeneSynonymDAO().save(annotationGeneSynonym));
+                        annotationGeneSynonym.setId(canvasDAOBeanService.getAnnotationGeneSynonymDAO().save(annotationGeneSynonym));
                         logger.info(annotationGeneSynonym.toString());
                         annotationGeneSynonymSet.add(annotationGeneSynonym);
                     } else {
