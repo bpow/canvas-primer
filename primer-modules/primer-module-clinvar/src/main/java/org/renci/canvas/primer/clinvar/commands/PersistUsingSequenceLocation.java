@@ -260,14 +260,14 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 }
 
                                 if (CollectionUtils.isNotEmpty(foundCanonicalAllelesVia37)
-                                        && CollectionUtils.isEmpty(foundCanonicalAllelesVia38)) {
+                                        && CollectionUtils.isEmpty(foundCanonicalAllelesVia38) && locatedVariant38 != null) {
                                     canonicalAllele = foundCanonicalAllelesVia37.get(0);
                                     canonicalAllele.getLocatedVariants().add(locatedVariant38);
                                     canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
                                 }
 
                                 if (CollectionUtils.isEmpty(foundCanonicalAllelesVia37)
-                                        && CollectionUtils.isNotEmpty(foundCanonicalAllelesVia38)) {
+                                        && CollectionUtils.isNotEmpty(foundCanonicalAllelesVia38) && locatedVariant37 != null) {
                                     canonicalAllele = foundCanonicalAllelesVia38.get(0);
                                     canonicalAllele.getLocatedVariants().add(locatedVariant37);
                                     canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
@@ -466,24 +466,41 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             locatedVariant = new LocatedVariant(genomeRef, genomeRefSeq);
             locatedVariant.setVariantType(variantType);
 
-            String ref = refBase;
-            char[] referenceChars = ref.toCharArray();
-
-            String alt = slt.getAlternateAllele();
-            char[] alternateChars = alt.toCharArray();
-
-            StringBuilder charsToRemove = new StringBuilder();
-
-            for (int i = 0; i < referenceChars.length; ++i) {
-                if (referenceChars[i] != alternateChars[i]) {
-                    break;
-                }
-                charsToRemove.append(referenceChars[i]);
+            if (StringUtils.isEmpty(slt.getAlternateAllele()) && slt.getVariantLength() != null) {
+                locatedVariant.setPosition(slt.getStop().intValue());
+                locatedVariant.setSeq(refBase);
             }
-            if (charsToRemove.length() > 0) {
-                // remove from front
-                locatedVariant.setPosition(slt.getStart().intValue() + charsToRemove.length());
-                locatedVariant.setSeq(alt.replaceFirst(charsToRemove.toString(), ""));
+
+            if (StringUtils.isNotEmpty(slt.getAlternateAllele())) {
+
+                if (slt.getVariantLength() != null && slt.getVariantLength().intValue() > 1) {
+
+                    char[] alternateChars = slt.getAlternateAllele().toCharArray();
+
+                    StringBuilder charsToRemove = new StringBuilder();
+
+                    char[] referenceChars = refBase.toCharArray();
+
+                    for (int i = 0; i < referenceChars.length; i++) {
+                        if (referenceChars[i] != alternateChars[i]) {
+                            break;
+                        }
+                        charsToRemove.append(referenceChars[i]);
+                    }
+                    if (charsToRemove.length() > 0) {
+                        // remove from front
+                        locatedVariant.setPosition(slt.getStart().intValue() + charsToRemove.length());
+                        locatedVariant.setSeq(slt.getAlternateAllele().replaceFirst(charsToRemove.toString(), ""));
+                    } else {
+                        locatedVariant.setPosition(slt.getStart().intValue());
+                        locatedVariant.setSeq(slt.getAlternateAllele());
+                    }
+
+                } else {
+                    locatedVariant.setPosition(slt.getStart().intValue());
+                    locatedVariant.setSeq(slt.getAlternateAllele());
+                }
+
             }
             // } else {
             // // remove from back
@@ -528,31 +545,41 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             locatedVariant = new LocatedVariant(genomeRef, genomeRefSeq);
             locatedVariant.setVariantType(variantType);
 
-            String ref = refBase;
-            char[] referenceChars = ref.toCharArray();
-
             if (StringUtils.isEmpty(slt.getAlternateAllele()) && slt.getVariantLength() != null) {
                 locatedVariant.setPosition(slt.getStop().intValue());
                 locatedVariant.setSeq(refBase);
             }
 
             if (StringUtils.isNotEmpty(slt.getAlternateAllele())) {
-                String alt = slt.getAlternateAllele();
-                char[] alternateChars = alt.toCharArray();
 
-                StringBuilder charsToRemove = new StringBuilder();
+                if (slt.getVariantLength() != null && slt.getVariantLength().intValue() > 1) {
 
-                for (int i = 0; i < referenceChars.length; ++i) {
-                    if (referenceChars[i] != alternateChars[i]) {
-                        break;
+                    char[] alternateChars = slt.getAlternateAllele().toCharArray();
+
+                    StringBuilder charsToRemove = new StringBuilder();
+
+                    char[] referenceChars = refBase.toCharArray();
+
+                    for (int i = 0; i < referenceChars.length; i++) {
+                        if (referenceChars[i] != alternateChars[i]) {
+                            break;
+                        }
+                        charsToRemove.append(referenceChars[i]);
                     }
-                    charsToRemove.append(referenceChars[i]);
+                    if (charsToRemove.length() > 0) {
+                        // remove from front
+                        locatedVariant.setPosition(slt.getStart().intValue() + charsToRemove.length());
+                        locatedVariant.setSeq(slt.getAlternateAllele().replaceFirst(charsToRemove.toString(), ""));
+                    } else {
+                        locatedVariant.setPosition(slt.getStart().intValue());
+                        locatedVariant.setSeq(slt.getAlternateAllele());
+                    }
+
+                } else {
+                    locatedVariant.setPosition(slt.getStart().intValue());
+                    locatedVariant.setSeq(slt.getAlternateAllele());
                 }
-                if (charsToRemove.length() > 0) {
-                    // remove from front
-                    locatedVariant.setPosition(slt.getStart().intValue() + charsToRemove.length());
-                    locatedVariant.setSeq(alt.replaceFirst(charsToRemove.toString(), ""));
-                }
+
             }
 
             locatedVariant.setEndPosition(locatedVariant.getPosition() + 1);
