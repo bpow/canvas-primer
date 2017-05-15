@@ -44,7 +44,7 @@
       <dependency>      
 	<groupId>org.renci.hgvs</groupId>
 	<artifactId>hgvs-parser</artifactId>
-	<version>0.0.7-SNAPSHOT</version>
+	<version>0.0.6</version>
       </dependency>            
       <dependency>
 	<groupId>org.renci.clinvar</groupId>
