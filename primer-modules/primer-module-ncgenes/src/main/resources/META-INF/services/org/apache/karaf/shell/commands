@@ -1,1 +1,2 @@
-org.renci.canvas.primer.init.commands.PersistAction
+org.renci.canvas.primer.ncgenes.commands.CreateBedFilesAction
+org.renci.canvas.primer.ncgenes.commands.PersistDXExons
