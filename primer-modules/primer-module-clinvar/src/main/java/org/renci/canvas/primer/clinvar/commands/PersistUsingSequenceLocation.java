@@ -27,6 +27,7 @@ import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.renci.canvas.dao.CANVASDAOBeanService;
 import org.renci.canvas.dao.CANVASDAOException;
+import org.renci.canvas.dao.clinvar.model.AssertionRanking;
 import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
@@ -310,7 +311,15 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             ClinicalSignificanceType clinicalSignificanceType = rat.getClinicalSignificance();
             rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
-            rca.setAssertion(clinicalSignificanceType.getDescription());
+            AssertionRanking assertionRanking = canvasDAOBeanService.getAssertionRankingDAO()
+                    .findById(clinicalSignificanceType.getDescription());
+            if (assertionRanking == null) {
+                assertionRanking = new AssertionRanking(clinicalSignificanceType.getDescription());
+                canvasDAOBeanService.getAssertionRankingDAO().save(assertionRanking);
+                logger.warn("assign a ranking to: {}", assertionRanking.toString());
+            }
+
+            rca.setAssertion(assertionRanking);
             rca.setAssertionType(rat.getAssertion().getType().value());
 
             TraitSet cTraitSet = canvasDAOBeanService.getTraitSetDAO().findById(traitSetType.getID().intValue());

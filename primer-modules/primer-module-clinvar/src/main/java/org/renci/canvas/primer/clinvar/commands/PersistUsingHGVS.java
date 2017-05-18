@@ -26,10 +26,10 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.renci.canvas.dao.CANVASDAOBeanService;
+import org.renci.canvas.dao.clinvar.model.AssertionRanking;
 import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
@@ -239,7 +239,16 @@ public class PersistUsingHGVS implements Callable<Void> {
 
                         ClinicalSignificanceType clinicalSignificanceType = rat.getClinicalSignificance();
                         rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
-                        rca.setAssertion(clinicalSignificanceType.getDescription());
+
+                        AssertionRanking assertionRanking = canvasDAOBeanService.getAssertionRankingDAO()
+                                .findById(clinicalSignificanceType.getDescription());
+                        if (assertionRanking == null) {
+                            assertionRanking = new AssertionRanking(clinicalSignificanceType.getDescription());
+                            canvasDAOBeanService.getAssertionRankingDAO().save(assertionRanking);
+                            logger.warn("assign a ranking to: {}", assertionRanking.toString());
+                        }
+
+                        rca.setAssertion(assertionRanking);
                         rca.setAssertionType(rat.getAssertion().getType().value());
 
                         TraitSetType traitSetType = rat.getTraitSet();
