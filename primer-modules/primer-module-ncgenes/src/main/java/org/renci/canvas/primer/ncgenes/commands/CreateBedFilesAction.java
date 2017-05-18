@@ -63,12 +63,14 @@ public class CreateBedFilesAction implements Action {
             allDiagnosticResultVersions.sort((a, b) -> b.getId().compareTo(a.getId()));
 
             DiagnosticResultVersion latestDiagnosticResultVersion = allDiagnosticResultVersions.get(0);
+            logger.info(latestDiagnosticResultVersion.toString());
 
             List<DiagnosticGene> diagnosticGenes = canvasDAOBeanService.getDiagnosticGeneDAO()
                     .findByGroupVersionAndExternalNamespaceAndVersion(latestDiagnosticResultVersion.getDbinGroupVersion(), "refseq",
                             latestDiagnosticResultVersion.getRefseqVersion().toString());
 
             if (CollectionUtils.isNotEmpty(diagnosticGenes)) {
+                logger.info("diagnosticGenes.size(): {}", diagnosticGenes.size());
 
                 TreeSet<Interval> intervals = new TreeSet<>();
                 List<String> prefixExclude = Arrays.asList("NR_", "XR_");
@@ -80,21 +82,25 @@ public class CreateBedFilesAction implements Action {
                     es.submit(() -> {
 
                         try {
+                            logger.info(diagnosticGene.toString());
+
                             AnnotationGene annotationGene = diagnosticGene.getGene();
 
-                            List<AnnotationGeneExternalId> externals = canvasDAOBeanService.getAnnotationGeneExternalIdDAO()
+                            List<AnnotationGeneExternalId> annotationGeneExternalIds = canvasDAOBeanService.getAnnotationGeneExternalIdDAO()
                                     .findByAnnotationGeneId(annotationGene.getId());
 
-                            if (CollectionUtils.isNotEmpty(externals)) {
+                            if (CollectionUtils.isNotEmpty(annotationGeneExternalIds)) {
+                                logger.info("annotationGeneExternalIds.size(): {}", annotationGeneExternalIds.size());
 
-                                List<AnnotationGeneExternalId> filteredExternals = externals.stream()
+                                List<AnnotationGeneExternalId> filteredAnnotationGeneExternalIds = annotationGeneExternalIds.stream()
                                         .filter(b -> "refseq".equals(b.getId().getNamespace()) && latestDiagnosticResultVersion
                                                 .getRefseqVersion().toString().equals(b.getId().getNamespaceVer()))
                                         .collect(Collectors.toList());
 
-                                if (CollectionUtils.isNotEmpty(filteredExternals)) {
+                                if (CollectionUtils.isNotEmpty(filteredAnnotationGeneExternalIds)) {
+                                    logger.info("filteredExternals.size(): {}", filteredAnnotationGeneExternalIds.size());
 
-                                    for (AnnotationGeneExternalId externalAnnotationGene : filteredExternals) {
+                                    for (AnnotationGeneExternalId externalAnnotationGene : filteredAnnotationGeneExternalIds) {
 
                                         RefSeqGene refseqGene = canvasDAOBeanService.getRefSeqGeneDAO()
                                                 .findById(externalAnnotationGene.getId().getExternalId());
