@@ -31,7 +31,7 @@ import org.renci.canvas.dao.clinvar.model.AssertionRanking;
 import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
-import org.renci.canvas.dao.clinvar.model.Version;
+import org.renci.canvas.dao.clinvar.model.ClinVarVersion;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.CanonicalAllele;
@@ -86,7 +86,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             File clinvarXmlFile = FTPFactory.ncbiDownload(clinvarDir, "/pub/clinvar/xml", "ClinVarFullRelease_00-latest.xml.gz");
 
             logger.info("finished download: {}", clinvarXmlFile.getAbsolutePath());
-            Version clinvarVersion = new Version(clinvarXmlFile.getName());
+            ClinVarVersion clinvarVersion = new ClinVarVersion(clinvarXmlFile.getName());
             clinvarVersion.setId(canvasDAOBeanService.getVersionDAO().save(clinvarVersion));
 
             // List<String> schemaFileList = FTPFactory.ncbiListRemoteFiles("/pub/clinvar/xsd_public", "clinvar_public_", ".xsd");
