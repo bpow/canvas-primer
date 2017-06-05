@@ -1,6 +1,10 @@
 package org.renci.canvas.primer.commons;
 
-public class Interval implements Comparable<Interval> {
+import java.io.Serializable;
+
+public class Interval implements Serializable, Comparable<Interval> {
+
+    private static final long serialVersionUID = 8964918174590607293L;
 
     private String accession;
 
@@ -118,6 +122,67 @@ public class Interval implements Comparable<Interval> {
         }
 
         return ret;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((accession == null) ? 0 : accession.hashCode());
+        result = prime * result + ((dxId == null) ? 0 : dxId.hashCode());
+        result = prime * result + ((geneName == null) ? 0 : geneName.hashCode());
+        result = prime * result + ((index == null) ? 0 : index.hashCode());
+        result = prime * result + ((start == null) ? 0 : start.hashCode());
+        result = prime * result + ((stop == null) ? 0 : stop.hashCode());
+        result = prime * result + ((transcript == null) ? 0 : transcript.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Interval other = (Interval) obj;
+        if (accession == null) {
+            if (other.accession != null)
+                return false;
+        } else if (!accession.equals(other.accession))
+            return false;
+        if (dxId == null) {
+            if (other.dxId != null)
+                return false;
+        } else if (!dxId.equals(other.dxId))
+            return false;
+        if (geneName == null) {
+            if (other.geneName != null)
+                return false;
+        } else if (!geneName.equals(other.geneName))
+            return false;
+        if (index == null) {
+            if (other.index != null)
+                return false;
+        } else if (!index.equals(other.index))
+            return false;
+        if (start == null) {
+            if (other.start != null)
+                return false;
+        } else if (!start.equals(other.start))
+            return false;
+        if (stop == null) {
+            if (other.stop != null)
+                return false;
+        } else if (!stop.equals(other.stop))
+            return false;
+        if (transcript == null) {
+            if (other.transcript != null)
+                return false;
+        } else if (!transcript.equals(other.transcript))
+            return false;
+        return true;
     }
 
 }
