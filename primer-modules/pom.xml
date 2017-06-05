@@ -98,7 +98,8 @@
     <module>primer-module-dbsnp</module>
     <module>primer-module-esp</module>
     <module>primer-module-hgmd</module>
-    <module>primer-module-ncgenes</module>
+    <module>primer-module-gene-lists</module>
+    <module>primer-module-gnomad</module>    
     <module>primer-module-genome-reference</module>
     <module>primer-module-omim</module>
     <module>primer-module-refseq</module>
