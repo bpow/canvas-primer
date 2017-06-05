@@ -33,7 +33,7 @@ import org.renci.canvas.dao.clinvar.model.AssertionRanking;
 import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
-import org.renci.canvas.dao.clinvar.model.Version;
+import org.renci.canvas.dao.clinvar.model.ClinVarVersion;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.LocatedVariant;
@@ -90,7 +90,7 @@ public class PersistUsingHGVS implements Callable<Void> {
             File clinvarXmlFile = FTPFactory.ncbiDownload(outputDir, "/pub/clinvar/xml",
                     String.format("ClinVarFullRelease_%s.xml.gz", date));
 
-            Version clinvarVersion = new Version(clinvarXmlFile.getName());
+            ClinVarVersion clinvarVersion = new ClinVarVersion(clinvarXmlFile.getName());
             clinvarVersion.setId(canvasDAOBeanService.getVersionDAO().save(clinvarVersion));
 
             List<String> schemaFileList = FTPFactory.ncbiListRemoteFiles("/pub/clinvar/xsd_public", "clinvar_public_", ".xsd");
