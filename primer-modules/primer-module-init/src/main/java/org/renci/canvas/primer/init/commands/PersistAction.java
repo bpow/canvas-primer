@@ -11,7 +11,6 @@ import org.renci.canvas.dao.CANVASDAOBeanService;
 import org.renci.canvas.dao.clinbin.model.DiagnosticStatusType;
 import org.renci.canvas.dao.clinbin.model.IncidentalStatusType;
 import org.renci.canvas.dao.clinbin.model.MaxFrequencySource;
-import org.renci.canvas.dao.ref.model.SequenceType;
 import org.renci.canvas.dao.refseq.model.GroupingType;
 import org.renci.canvas.dao.refseq.model.LocationType;
 import org.renci.canvas.dao.var.model.VariantType;
