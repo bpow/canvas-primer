@@ -1,0 +1,36 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <parent>
+    <groupId>org.renci.canvas.primer</groupId>
+    <artifactId>primer-modules</artifactId>
+    <version>0.0.4-SNAPSHOT</version>
+  </parent>
+  <name>CANVAS :: Primer :: Modules :: Gene lists</name>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.renci.canvas.primer.primer-modules</groupId>
+  <artifactId>primer-module-gene-lists</artifactId>
+  <version>0.0.4-SNAPSHOT</version>
+  <packaging>bundle</packaging>
+  <properties>
+    <maven.site.plugin.skip>true</maven.site.plugin.skip>    
+  </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.karaf.tooling</groupId>
+        <artifactId>karaf-services-maven-plugin</artifactId>
+      </plugin>            
+      <plugin>
+	<groupId>org.apache.felix</groupId>
+	<artifactId>maven-bundle-plugin</artifactId>
+	<configuration>
+	  <instructions>
+	    <Private-Package />
+	    <Import-Package>*</Import-Package>	    
+	    <Export-Package>org.renci.canvas.primer.genes.commands.*</Export-Package>
+            <Karaf-Commands>org.renci.canvas.primer.genes.commands.*</Karaf-Commands>
+	  </instructions>
+	</configuration>
+      </plugin>
+    </plugins>
+  </build>  
+</project>
