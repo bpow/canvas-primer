@@ -3,6 +3,7 @@ package org.renci.canvas.primer.gnomad.commands;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,6 +16,8 @@ import org.apache.karaf.shell.api.action.Option;
 import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.renci.canvas.dao.CANVASDAOBeanService;
+import org.renci.canvas.dao.CANVASDAOException;
+import org.renci.canvas.dao.commons.LocatedVariantFactory;
 import org.renci.canvas.dao.gnomad.model.GnomADVariantFrequency;
 import org.renci.canvas.dao.gnomad.model.GnomADVariantFrequencyPK;
 import org.renci.canvas.dao.ref.model.GenomeRef;
@@ -54,170 +57,165 @@ public class PersistAction implements Action {
         String version = versionAndFilePair.getLeft();
         File latestFile = versionAndFilePair.getRight();
 
-        List<GenomeRef> allGenomeRefs = canvasDAOBeanService.getGenomeRefDAO().findAll();
-        GenomeRef genomeRef = allGenomeRefs.stream().filter(a -> a.getName().equals("38.2")).findFirst().get();
+        Executors.newSingleThreadExecutor().submit(() -> {
 
-        List<VariantType> allVariantTypes = canvasDAOBeanService.getVariantTypeDAO().findAll();
+            try {
+                List<GenomeRef> allGenomeRefs = canvasDAOBeanService.getGenomeRefDAO().findAll();
+                GenomeRef genomeRef = allGenomeRefs.stream().filter(a -> a.getName().startsWith("38"))
+                        .sorted((a, b) -> a.getName().compareTo(b.getName())).findFirst().get();
 
-        List<GenomeRefSeq> allGenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefIdAndSeqType(genomeRef.getId(),
-                "Chromosome");
+                List<VariantType> allVariantTypes = canvasDAOBeanService.getVariantTypeDAO().findAll();
 
-        try (VCFFileReader vcfFileReader = new VCFFileReader(latestFile, false)) {
+                List<GenomeRefSeq> allGenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO()
+                        .findByGenomeRefIdAndSeqType(genomeRef.getId(), "Chromosome");
 
-            for (VariantContext variantContext : vcfFileReader) {
+                try (VCFFileReader vcfFileReader = new VCFFileReader(latestFile, false)) {
 
-                GenomeRefSeq genomeRefSeq = allGenomeRefSeqs.stream().filter(a -> a.getContig().equals(variantContext.getContig()))
-                        .findFirst().get();
+                    for (VariantContext variantContext : vcfFileReader) {
 
-                CommonInfo commonInfo = variantContext.getCommonInfo();
+                        GenomeRefSeq genomeRefSeq = allGenomeRefSeqs.stream().filter(a -> a.getContig().equals(variantContext.getContig()))
+                                .findFirst().get();
 
-                for (Allele altAllele : variantContext.getAlternateAlleles()) {
+                        CommonInfo commonInfo = variantContext.getCommonInfo();
 
-                    String ref = variantContext.getReference().getDisplayString();
-                    String alt = altAllele.getDisplayString();
+                        for (Allele altAllele : variantContext.getAlternateAlleles()) {
 
-                    char[] referenceChars = ref.toCharArray();
-                    char[] alternateChars = alt.toCharArray();
+                            LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, variantContext, altAllele,
+                                    allVariantTypes);
 
-                    LocatedVariant locatedVariant = new LocatedVariant(genomeRef, genomeRefSeq);
-
-                    if (variantContext.isSNP()) {
-
-                        locatedVariant.setSeq(alt);
-                        locatedVariant.setRef(ref);
-                        locatedVariant.setPosition(variantContext.getStart());
-                        locatedVariant.setVariantType(allVariantTypes.stream().filter(a -> a.getId().equals("snp")).findAny().get());
-                        locatedVariant.setEndPosition(variantContext.getStart() + locatedVariant.getRef().length());
-
-                    } else if (variantContext.isIndel()) {
-
-                        // could be insertion or deletion
-
-                        if (StringUtils.isNotEmpty(ref) && StringUtils.isNotEmpty(alt)) {
-
-                            if (ref.length() > alt.length()) {
-
-                                locatedVariant
-                                        .setVariantType(allVariantTypes.stream().filter(a -> a.getId().equals("del")).findAny().get());
-                                locatedVariant.setPosition(variantContext.getStart());
-
-                                if (referenceChars.length > 1 && alternateChars.length > 1) {
-
-                                    StringBuilder frontChars2Remove = new StringBuilder();
-
-                                    for (int i = 0; i < referenceChars.length; ++i) {
-                                        if (i == alternateChars.length || referenceChars[i] != alternateChars[i]) {
-                                            break;
-                                        }
-                                        frontChars2Remove.append(referenceChars[i]);
-                                    }
-
-                                    if (frontChars2Remove.length() > 0) {
-                                        ref = ref.replaceFirst(frontChars2Remove.toString(), "");
-                                    }
-
-                                    locatedVariant.setPosition(
-                                            variantContext.getStart() + (frontChars2Remove.length() > 0 ? frontChars2Remove.length() : 0));
-                                }
-                                locatedVariant.setEndPosition(locatedVariant.getPosition() + ref.length());
-                                locatedVariant.setRef(ref);
-                                locatedVariant.setSeq(ref);
-
+                            logger.info(locatedVariant.toString());
+                            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
+                                    .findByExample(locatedVariant);
+                            if (CollectionUtils.isNotEmpty(foundLocatedVariants)) {
+                                locatedVariant = foundLocatedVariants.get(0);
                             } else {
+                                locatedVariant.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
+                            }
 
-                                locatedVariant
-                                        .setVariantType(allVariantTypes.stream().filter(a -> a.getId().equals("ins")).findAny().get());
-                                locatedVariant.setPosition(variantContext.getStart() - 1);
+                            final LocatedVariant finalLocatedVariant = locatedVariant;
 
-                                if (referenceChars.length > 1 && alternateChars.length > 1) {
+                            int alleleIndex = variantContext.getAlleleIndex(altAllele);
+                            logger.debug("alleleIndex: {}", alleleIndex);
 
-                                    StringBuilder frontChars2Remove = new StringBuilder();
-                                    StringBuilder backChars2Remove = new StringBuilder();
+                            Arrays.asList("AFR", "AMR", "ASJ", "EAS", "FIN", "NFE", "OTH", "SAS").parallelStream().forEach(population -> {
 
-                                    for (int i = 0; i < referenceChars.length; ++i) {
-                                        if (referenceChars[i] != alternateChars[i]) {
-                                            break;
+                                try {
+
+                                    String alleleFrequencyValue = commonInfo.getAttributeAsString(String.format("AF_%s", population), "");
+                                    String alleleCountValue = commonInfo.getAttributeAsString(String.format("AC_%s", population), "");
+                                    String alleleTotalValue = commonInfo.getAttributeAsString(String.format("AN_%s", population), "");
+                                    String hemizygousCountValue = commonInfo.getAttributeAsString(String.format("Hemi_%s", population), "");
+                                    String homozygousCountValue = commonInfo.getAttributeAsString(String.format("Hom_%s", population), "");
+
+                                    GnomADVariantFrequencyPK variantFrequencyPK = new GnomADVariantFrequencyPK(finalLocatedVariant.getId(),
+                                            version, population);
+
+                                    GnomADVariantFrequency foundGnomADVariantFrequency = canvasDAOBeanService.getGnomADVariantFrequencyDAO()
+                                            .findById(variantFrequencyPK);
+
+                                    GnomADVariantFrequency variantFrequency = null;
+                                    if (foundGnomADVariantFrequency == null) {
+                                        variantFrequency = new GnomADVariantFrequency(variantFrequencyPK);
+                                    } else {
+                                        variantFrequency = foundGnomADVariantFrequency;
+                                    }
+                                    variantFrequency.setLocatedVariant(finalLocatedVariant);
+
+                                    Integer alleleTotal = StringUtils.isNotEmpty(alleleTotalValue) && !".".equals(alleleTotalValue)
+                                            ? Integer.valueOf(alleleTotalValue) : 0;
+                                    Double alleleFrequency = null;
+                                    Integer alleleCount = null;
+                                    Integer hemizygousCount = null;
+                                    Integer homozygousCount = null;
+
+                                    if (alleleIndex > 0) {
+
+                                        List<String> alleleFrequencyValues = commonInfo
+                                                .getAttributeAsStringList(String.format("AF_%s", population), "");
+                                        if (CollectionUtils.isNotEmpty(alleleFrequencyValues)) {
+                                            alleleFrequencyValue = alleleFrequencyValues.get(alleleIndex - 1);
+                                            alleleFrequency = StringUtils.isNotEmpty(alleleFrequencyValue)
+                                                    && !".".equals(alleleFrequencyValue) ? Double.valueOf(alleleFrequencyValue) : 0D;
+                                        } else {
+                                            alleleFrequency = 0D;
                                         }
-                                        frontChars2Remove.append(referenceChars[i]);
-                                    }
 
-                                    for (int i = referenceChars.length - 1; i > 0; --i) {
-                                        if (referenceChars[i] != alternateChars[i]) {
-                                            break;
+                                        List<String> alleleCountValues = commonInfo
+                                                .getAttributeAsStringList(String.format("AC_%s", population), "");
+                                        if (CollectionUtils.isNotEmpty(alleleCountValues)) {
+                                            alleleCountValue = alleleCountValues.get(alleleIndex - 1);
+                                            alleleCount = StringUtils.isNotEmpty(alleleCountValue) && !".".equals(alleleCountValue)
+                                                    ? Integer.valueOf(alleleCountValue) : 0;
+                                        } else {
+                                            alleleCount = 0;
                                         }
-                                        backChars2Remove.append(referenceChars[i]);
+
+                                        List<String> hemizygousCountValues = commonInfo
+                                                .getAttributeAsStringList(String.format("Hemi_%s", population), "");
+                                        if (CollectionUtils.isNotEmpty(hemizygousCountValues)) {
+                                            hemizygousCountValue = hemizygousCountValues.get(alleleIndex - 1);
+                                            hemizygousCount = StringUtils.isNotEmpty(hemizygousCountValue)
+                                                    && !".".equals(hemizygousCountValue) ? Integer.valueOf(hemizygousCountValue) : 0;
+                                        } else {
+                                            hemizygousCount = 0;
+                                        }
+
+                                        List<String> homozygousCountValues = commonInfo
+                                                .getAttributeAsStringList(String.format("Hom_%s", population), "");
+                                        if (CollectionUtils.isNotEmpty(homozygousCountValues)) {
+                                            homozygousCountValue = homozygousCountValues.get(alleleIndex - 1);
+                                            homozygousCount = StringUtils.isNotEmpty(homozygousCountValue)
+                                                    && !".".equals(homozygousCountValue) ? Integer.valueOf(homozygousCountValue) : 0;
+                                        } else {
+                                            homozygousCount = 0;
+                                        }
+
+                                    } else {
+
+                                        alleleFrequency = StringUtils.isNotEmpty(alleleFrequencyValue) && !".".equals(alleleFrequencyValue)
+                                                ? Double.valueOf(alleleFrequencyValue) : 0D;
+                                        alleleCount = StringUtils.isNotEmpty(alleleCountValue) && !".".equals(alleleCountValue)
+                                                ? Integer.valueOf(alleleCountValue) : 0;
+                                        alleleTotal = StringUtils.isNotEmpty(alleleTotalValue) && !".".equals(alleleTotalValue)
+                                                ? Integer.valueOf(alleleTotalValue) : 0;
+                                        hemizygousCount = StringUtils.isNotEmpty(hemizygousCountValue) && !".".equals(hemizygousCountValue)
+                                                ? Integer.valueOf(hemizygousCountValue) : 0;
+                                        homozygousCount = StringUtils.isNotEmpty(homozygousCountValue) && !".".equals(homozygousCountValue)
+                                                ? Integer.valueOf(homozygousCountValue) : 0;
+
                                     }
 
-                                    if (frontChars2Remove.length() > 0) {
-                                        ref = ref.replaceFirst(frontChars2Remove.toString(), "");
-                                        alt = alt.replaceFirst(frontChars2Remove.toString(), "");
-                                    }
+                                    variantFrequency.setAlternateAlleleFrequency(alleleFrequency);
+                                    variantFrequency.setAlternateAlleleCount(alleleCount);
+                                    variantFrequency.setTotalAlleleCount(alleleTotal);
+                                    variantFrequency.setHemizygousCount(hemizygousCount);
+                                    variantFrequency.setHomozygousCount(homozygousCount);
 
-                                    if (backChars2Remove.length() > 0) {
-                                        backChars2Remove.reverse();
-                                        ref = StringUtils.removeEnd(ref, backChars2Remove.toString());
-                                        alt = StringUtils.removeEnd(alt, backChars2Remove.toString());
-                                    }
+                                    canvasDAOBeanService.getGnomADVariantFrequencyDAO().save(variantFrequency);
 
-                                    locatedVariant.setPosition(variantContext.getStart() - 1
-                                            + (frontChars2Remove.length() > 0 ? frontChars2Remove.length() : 0));
+                                    logger.debug(variantFrequency.toString());
+                                } catch (NumberFormatException | CANVASDAOException e) {
+                                    logger.error(e.getMessage(), e);
                                 }
 
-                                locatedVariant.setEndPosition(locatedVariant.getPosition() + 1);
-                                locatedVariant.setRef("");
-                                locatedVariant.setSeq(alt);
-                            }
+                            });
 
                         }
 
-                    } else if (variantContext.isMNP()) {
-
-                        locatedVariant.setVariantType(allVariantTypes.stream().filter(a -> a.getId().equals("sub")).findAny().get());
-                        locatedVariant.setPosition(variantContext.getStart());
-                        locatedVariant.setRef(ref);
-                        locatedVariant.setSeq(alt);
-                        locatedVariant.setEndPosition(locatedVariant.getPosition() + ref.length());
-
                     }
-
-                    List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO().findByExample(locatedVariant);
-                    if (CollectionUtils.isNotEmpty(foundLocatedVariants)) {
-                        locatedVariant = foundLocatedVariants.get(0);
-                    } else {
-                        locatedVariant.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
-                    }
-                    logger.debug(locatedVariant.toString());
-
-                    for (String population : Arrays.asList("AFR", "AMR", "ASJ", "EAS", "FIN", "NFE", "OTH", "SAS")) {
-
-                        Double alleleFrequency = commonInfo.getAttributeAsDouble(String.format("AF_%s", population), 0D);
-                        Integer alleleCount = commonInfo.getAttributeAsInt(String.format("AC_%s", population), 0);
-                        Integer alleleTotal = commonInfo.getAttributeAsInt(String.format("AN_%s", population), 0);
-                        Integer hemizygousCount = commonInfo.getAttributeAsInt(String.format("Hemi_%s", population), 0);
-                        Integer homozygousCount = commonInfo.getAttributeAsInt(String.format("Hom_%s", population), 0);
-
-                        GnomADVariantFrequencyPK variantFrequencyPK = new GnomADVariantFrequencyPK(locatedVariant.getId(), version,
-                                population);
-                        GnomADVariantFrequency variantFrequency = new GnomADVariantFrequency(variantFrequencyPK);
-
-                        variantFrequency.setAlternateAlleleFrequency(alleleFrequency);
-                        variantFrequency.setAlternateAlleleCount(alleleCount);
-                        variantFrequency.setTotalAlleleCount(alleleTotal);
-                        variantFrequency.setHemizygousCount(hemizygousCount);
-                        variantFrequency.setHomozygousCount(homozygousCount);
-
-                    }
-
                 }
-
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
             }
-        }
+
+        });
+
         return null;
     }
 
     private Pair<String, File> downloadLatest() {
 
-        File download = new File("/home/jdr0887/Downloads", "gnomad.exomes.r2.0.1.sites.vcf");
+        File download = new File(getGnomadExomesVCF());
 
         Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.vcf");
         Matcher m = p.matcher(download.getName());
