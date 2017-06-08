@@ -60,13 +60,14 @@
     <bundle>mvn:org.hibernate.common/hibernate-commons-annotations/5.0.1.Final</bundle>
     <bundle>mvn:org.hibernate/hibernate-ehcache/${hibernate.version}</bundle>
     <bundle>mvn:org.hibernate/hibernate-core/${hibernate.version}</bundle>
-    <bundle>mvn:org.hibernate/hibernate-osgi/${hibernate.version}</bundle>    
+    <bundle>mvn:org.hibernate/hibernate-osgi/${hibernate.version}</bundle>
   </feature>
 
   <feature name="canvas-dao" version="${project.version}" resolver="(obr)">
     <bundle>mvn:org.renci.canvas.canvas-dao/canvas-datasource/${renci.canvas.dao.version}</bundle>            
     <bundle>mvn:org.renci.canvas.canvas-dao/canvas-dao-api/${renci.canvas.dao.version}</bundle>
     <bundle>mvn:org.renci.canvas.canvas-dao/canvas-dao-jpa/${renci.canvas.dao.version}</bundle>
+    <bundle>mvn:org.renci.canvas.canvas-dao/canvas-commons/${renci.canvas.dao.version}</bundle>    
   </feature>
 
   <feature name="primer-dao" version="${project.version}" resolver="(obr)">
@@ -81,7 +82,8 @@
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-genenames/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-refseq/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-clinvar/${project.version}</bundle>
-    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-ncgenes/${project.version}</bundle>    
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gene-lists/${project.version}</bundle>
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gnomad/${project.version}</bundle>        
   </feature>  
   
 </features>
