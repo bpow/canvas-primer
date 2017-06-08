@@ -26,6 +26,10 @@
       <groupId>org.renci.gerese4j</groupId>
       <artifactId>gerese4j-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.renci.canvas.canvas-dao</groupId>
+      <artifactId>canvas-commons</artifactId>
+    </dependency>                      
   </dependencies>  
   <build>
     <plugins>
