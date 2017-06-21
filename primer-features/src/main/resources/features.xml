@@ -36,10 +36,10 @@
     <bundle>mvn:org.renci.osgi.bundles/jfreechart-1.0.17-bundle/0.0.2</bundle>
     <bundle>mvn:org.renci.osgi.bundles/jbzip2-0.9-bundle/0.0.1</bundle>
     <bundle>mvn:org.renci.osgi.bundles/htsjdk-${htsjdk.version}-bundle/0.0.1</bundle>
-    <bundle>mvn:org.renci.genbank/gbff-parser/0.0.27</bundle>
-    <bundle>mvn:org.renci.gff/gff3-parser/0.0.7</bundle>
-    <bundle>mvn:org.renci.hgvs/hgvs-parser/0.0.7-SNAPSHOT</bundle>    
-    <bundle>mvn:org.renci.clinvar/clinvar-public/1.42</bundle>
+    <bundle>mvn:org.renci.genbank/gbff-parser/${gbff.parser.version}</bundle>
+    <bundle>mvn:org.renci.gff/gff3-parser/${gff3.parser.version}</bundle>
+    <bundle>mvn:org.renci.hgvs/hgvs-parser/${hgvs.parser.version}</bundle>    
+    <bundle>mvn:org.renci.clinvar/clinvar-public/${clinvar.version}</bundle>
     <bundle>mvn:org.renci.gerese4j/gerese4j-core/${gerese4j.version}</bundle>
     <bundle>mvn:org.apache.geronimo.specs/geronimo-annotation_1.0_spec/1.1.1</bundle>
     <bundle>mvn:org.apache.geronimo.specs/geronimo-servlet_2.5_spec/1.2</bundle>
@@ -83,7 +83,8 @@
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-refseq/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-clinvar/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gene-lists/${project.version}</bundle>
-    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gnomad/${project.version}</bundle>        
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gnomad/${project.version}</bundle>
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-1000genomes/${project.version}</bundle>            
   </feature>  
   
 </features>
