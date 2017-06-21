@@ -2,7 +2,6 @@ package org.renci.canvas.primer.clinvar.commands;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -11,6 +10,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -25,13 +27,14 @@ import javax.xml.stream.events.XMLEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.renci.canvas.dao.CANVASDAOBeanService;
-import org.renci.canvas.dao.CANVASDAOException;
 import org.renci.canvas.dao.clinvar.model.AssertionRanking;
+import org.renci.canvas.dao.clinvar.model.ClinVarVersion;
 import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
-import org.renci.canvas.dao.clinvar.model.ClinVarVersion;
+import org.renci.canvas.dao.commons.LocatedVariantFactory;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.CanonicalAllele;
@@ -40,8 +43,8 @@ import org.renci.canvas.dao.var.model.VariantType;
 import org.renci.canvas.primer.commons.FTPFactory;
 import org.renci.clinvar.ClinicalSignificanceType;
 import org.renci.clinvar.MeasureSetType;
-import org.renci.clinvar.MeasureSetType.Measure;
-import org.renci.clinvar.MeasureSetType.Measure.AttributeSet;
+import org.renci.clinvar.MeasureType;
+import org.renci.clinvar.MeasureType.AttributeSet;
 import org.renci.clinvar.ReferenceAssertionType;
 import org.renci.clinvar.ReferenceAssertionType.ClinVarAccession;
 import org.renci.clinvar.ReleaseType;
@@ -85,48 +88,29 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             File clinvarXmlFile = FTPFactory.ncbiDownload(clinvarDir, "/pub/clinvar/xml", "ClinVarFullRelease_00-latest.xml.gz");
 
-            logger.info("finished download: {}", clinvarXmlFile.getAbsolutePath());
             ClinVarVersion clinvarVersion = new ClinVarVersion(clinvarXmlFile.getName());
-            clinvarVersion.setId(canvasDAOBeanService.getVersionDAO().save(clinvarVersion));
-
-            // List<String> schemaFileList = FTPFactory.ncbiListRemoteFiles("/pub/clinvar/xsd_public", "clinvar_public_", ".xsd");
-            //
-            // Pattern clinvarPublicFileNamePattern = Pattern.compile("clinvar_public_(?<v1>\\d+)\\.(?<v2>\\d+)\\.xsd");
-            // List<Pair<Integer, Integer>> versionPairList = new ArrayList<>();
-            // for (String schemaFile : schemaFileList) {
-            // Matcher m = clinvarPublicFileNamePattern.matcher(schemaFile);
-            // if (m.find()) {
-            // String v1 = m.group("v1");
-            // String v2 = m.group("v2");
-            // versionPairList.add(Pair.of(Integer.valueOf(v1), Integer.valueOf(v2)));
-            // }
-            // }
-            //
-            // versionPairList.sort((a, b) -> {
-            // int ret = b.getLeft().compareTo(a.getLeft());
-            // if (ret == 0) {
-            // ret = b.getRight().compareTo(a.getRight());
-            // }
-            // return ret;
-            // });
-            //
-            // String clinvarXSDVersion = String.format("%s.%s", versionPairList.get(0).getLeft(), versionPairList.get(0).getRight());
-            // String clinvarPublicBundleVersion = null;
-            // for (Bundle bundle : Arrays.asList(bundleContext.getBundles())) {
-            // if ("clinvar-public".equals(bundle.getSymbolicName())) {
-            // clinvarPublicBundleVersion = bundle.getVersion().toString();
-            // break;
-            // }
-            // }
-            //
-            // if (StringUtils.isNotEmpty(clinvarPublicBundleVersion) && !clinvarPublicBundleVersion.contains(clinvarXSDVersion)) {
-            // logger.error("Rebuild https://github.com/jdr0887/clinvar_public using version: {}", clinvarXSDVersion);
-            // return null;
-            // }
+            clinvarVersion.setId(canvasDAOBeanService.getClinVarVersionDAO().save(clinvarVersion));
 
             List<VariantType> allVariantTypes = canvasDAOBeanService.getVariantTypeDAO().findAll();
 
             List<GenomeRef> allGenomeRefs = canvasDAOBeanService.getGenomeRefDAO().findAll();
+
+            // vardb_berg_38_migration has different name than GeReSe4jBuild.getVersion(), using hardcoded id instead
+
+            GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion()))
+                    .findFirst().get();
+            // GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getId().equals(4)).findFirst().get();
+
+            GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild37.getBuild().getVersion()))
+                    .findFirst().get();
+            // GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getId().equals(2)).findFirst().get();
+
+            List<GenomeRefSeq> all38GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef38.getId());
+            List<GenomeRefSeq> all37GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef37.getId());
+
+            List<ReferenceAssertionType> rats = new ArrayList<>();
+
+            logger.info("parsing: {}", clinvarXmlFile.getName());
 
             try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
                     GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 16)).intValue())) {
@@ -150,15 +134,15 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
                         MeasureSetType measureSetType = rat.getMeasureSet();
 
-                        if ("Variant".equals(measureSetType.getType())) {
+                        if (measureSetType != null && "Variant".equals(measureSetType.getType())) {
 
-                            List<Measure> measures = measureSetType.getMeasure();
+                            List<MeasureType> measures = measureSetType.getMeasure();
 
                             if (CollectionUtils.isEmpty(measures)) {
                                 continue;
                             }
 
-                            for (Measure measure : measures) {
+                            for (MeasureType measure : measures) {
 
                                 List<AttributeSet> filters = measure.getAttributeSet().stream()
                                         .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
@@ -177,103 +161,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                     continue;
                                 }
 
-                                String measureType = measure.getType();
-                                logger.info("measureType: {}", measureType);
-
-                                List<SequenceLocationType> sequenceLocationTypeList = measure.getSequenceLocation();
-
-                                Optional<SequenceLocationType> optionalSequenceLocationTypeFor38 = sequenceLocationTypeList.stream()
-                                        .filter(a -> a.getStart() != null
-                                                && (a.getVariantLength() != null && a.getVariantLength().intValue() < 100)
-                                                && "GRCh38".equals(a.getAssembly()))
-                                        .findAny();
-
-                                LocatedVariant locatedVariant38 = null;
-
-                                if (optionalSequenceLocationTypeFor38.isPresent()) {
-                                    SequenceLocationType sequenceLocationType = optionalSequenceLocationTypeFor38.get();
-                                    Optional<GenomeRef> foundGenomeRef = allGenomeRefs.stream()
-                                            .filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion())).findAny();
-                                    if (foundGenomeRef.isPresent()) {
-                                        GenomeRef genomeRef = foundGenomeRef.get();
-                                        locatedVariant38 = processMutation(measureType, sequenceLocationType, gerese4jBuild38, genomeRef,
-                                                allVariantTypes);
-                                    }
-                                }
-
-                                if (locatedVariant38 != null) {
-                                    persistAssertion(locatedVariant38, rat);
-                                }
-
-                                Optional<SequenceLocationType> optionalSequenceLocationTypeFor37 = sequenceLocationTypeList.stream()
-                                        .filter(a -> a.getStart() != null
-                                                && (a.getVariantLength() != null && a.getVariantLength().intValue() < 100)
-                                                && "GRCh37".equals(a.getAssembly()))
-                                        .findAny();
-
-                                LocatedVariant locatedVariant37 = null;
-
-                                if (optionalSequenceLocationTypeFor37.isPresent()) {
-                                    SequenceLocationType sequenceLocationType = optionalSequenceLocationTypeFor37.get();
-                                    Optional<GenomeRef> foundGenomeRef = allGenomeRefs.stream()
-                                            .filter(a -> a.getName().equals(gerese4jBuild37.getBuild().getVersion())).findAny();
-                                    if (foundGenomeRef.isPresent()) {
-                                        GenomeRef genomeRef = foundGenomeRef.get();
-                                        locatedVariant37 = processMutation(measureType, sequenceLocationType, gerese4jBuild37, genomeRef,
-                                                allVariantTypes);
-                                    }
-                                }
-
-                                if (locatedVariant37 != null) {
-                                    persistAssertion(locatedVariant37, rat);
-                                }
-
-                                CanonicalAllele canonicalAllele = null;
-
-                                List<CanonicalAllele> foundCanonicalAllelesVia38 = new ArrayList<>();
-                                if (locatedVariant38 != null) {
-                                    foundCanonicalAllelesVia38.addAll(
-                                            canvasDAOBeanService.getCanonicalAlleleDAO().findByLocatedVariantId(locatedVariant38.getId()));
-                                }
-
-                                List<CanonicalAllele> foundCanonicalAllelesVia37 = new ArrayList<>();
-                                if (locatedVariant37 != null) {
-                                    foundCanonicalAllelesVia37.addAll(
-                                            canvasDAOBeanService.getCanonicalAlleleDAO().findByLocatedVariantId(locatedVariant37.getId()));
-                                }
-
-                                if (CollectionUtils.isEmpty(foundCanonicalAllelesVia37)
-                                        && CollectionUtils.isEmpty(foundCanonicalAllelesVia38)) {
-
-                                    Set<LocatedVariant> locatedVariants = new HashSet<>();
-                                    if (locatedVariant37 != null) {
-                                        locatedVariants.add(locatedVariant37);
-                                    }
-                                    if (locatedVariant38 != null) {
-                                        locatedVariants.add(locatedVariant38);
-                                    }
-                                    if (!locatedVariants.isEmpty()) {
-                                        canonicalAllele = new CanonicalAllele();
-                                        canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
-                                        canonicalAllele.getLocatedVariants().addAll(locatedVariants);
-                                        canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
-                                    }
-                                }
-
-                                if (CollectionUtils.isNotEmpty(foundCanonicalAllelesVia37)
-                                        && CollectionUtils.isEmpty(foundCanonicalAllelesVia38) && locatedVariant38 != null) {
-                                    canonicalAllele = foundCanonicalAllelesVia37.get(0);
-                                    canonicalAllele.getLocatedVariants().add(locatedVariant38);
-                                    canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
-                                }
-
-                                if (CollectionUtils.isEmpty(foundCanonicalAllelesVia37)
-                                        && CollectionUtils.isNotEmpty(foundCanonicalAllelesVia38) && locatedVariant37 != null) {
-                                    canonicalAllele = foundCanonicalAllelesVia38.get(0);
-                                    canonicalAllele.getLocatedVariants().add(locatedVariant37);
-                                    canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
-                                }
-
+                                rats.add(rat);
                             }
 
                         }
@@ -281,92 +169,349 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                         reader.next();
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
 
+            logger.info("rats.size(): {}", rats.size());
+
+            logger.info("persisting AssertionRankings");
+            List<String> clinicalSignificanceDescList = rats.parallelStream().map(a -> a.getClinicalSignificance().getDescription())
+                    .distinct().collect(Collectors.toList());
+            for (String clinicalSignificanceDesc : clinicalSignificanceDescList) {
+                AssertionRanking assertionRanking = canvasDAOBeanService.getAssertionRankingDAO().findById(clinicalSignificanceDesc);
+                if (assertionRanking == null) {
+                    assertionRanking = new AssertionRanking(clinicalSignificanceDesc);
+                    canvasDAOBeanService.getAssertionRankingDAO().save(assertionRanking);
+                }
+            }
+
+            logger.info("persisting TraitSets");
+            Set<TraitSet> traitSets = new HashSet<>();
+            rats.parallelStream().forEach(a -> traitSets.add(new TraitSet(a.getTraitSet().getID().intValue(), a.getTraitSet().getType())));
+
+            ExecutorService es = Executors.newFixedThreadPool(3);
+            for (TraitSet traitSet : traitSets) {
+                es.submit(() -> {
+                    try {
+                        TraitSet foundTraitSet = canvasDAOBeanService.getTraitSetDAO().findById(traitSet.getId());
+                        if (foundTraitSet == null) {
+                            canvasDAOBeanService.getTraitSetDAO().save(traitSet);
+                            logger.info(traitSet.toString());
+                        }
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                });
+            }
+            es.shutdown();
+            if (!es.awaitTermination(1L, TimeUnit.HOURS)) {
+                es.shutdownNow();
+            }
+            traitSets.clear();
+
+            logger.info("persisting Traits");
+            Set<Trait> traits = new HashSet<>();
+            rats.parallelStream().forEach(a -> {
+                List<TraitType> traitTypeList = a.getTraitSet().getTrait();
+                for (TraitType traitType : traitTypeList) {
+                    Optional<SetElementSetType> preferredNameOptional = traitType.getName().stream()
+                            .filter(b -> b.getElementValue().getType().equals("Preferred")).findAny();
+                    if (preferredNameOptional.isPresent()) {
+                        traits.add(new Trait(traitType.getID().intValue(), traitType.getType(),
+                                preferredNameOptional.get().getElementValue().getValue()));
+                    }
+                }
+            });
+
+            es = Executors.newFixedThreadPool(3);
+            for (Trait trait : traits) {
+                es.submit(() -> {
+                    try {
+                        Trait foundTrait = canvasDAOBeanService.getTraitDAO().findById(trait.getId());
+                        if (foundTrait == null) {
+                            canvasDAOBeanService.getTraitDAO().save(trait);
+                            logger.info(trait.toString());
+                        }
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                });
+            }
+            es.shutdown();
+            if (!es.awaitTermination(1L, TimeUnit.HOURS)) {
+                es.shutdownNow();
+            }
+            traits.clear();
+
+            logger.info("mapping TraitSets/Traits");
+            es = Executors.newFixedThreadPool(2);
+            for (ReferenceAssertionType rat : rats) {
+                es.submit(() -> {
+                    try {
+                        List<TraitType> traitTypeList = rat.getTraitSet().getTrait();
+                        for (TraitType traitType : traitTypeList) {
+                            Optional<SetElementSetType> preferredNameOptional = traitType.getName().stream()
+                                    .filter(b -> b.getElementValue().getType().equals("Preferred")).findAny();
+                            if (preferredNameOptional.isPresent()) {
+                                Trait trait = canvasDAOBeanService.getTraitDAO().findById(traitType.getID().intValue());
+                                TraitSet traitSet = canvasDAOBeanService.getTraitSetDAO().findById(rat.getTraitSet().getID().intValue());
+                                if (!traitSet.getTraits().contains(trait)) {
+                                    traitSet.getTraits().add(trait);
+                                    canvasDAOBeanService.getTraitSetDAO().save(traitSet);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                });
+            }
+            es.shutdown();
+            if (!es.awaitTermination(1L, TimeUnit.HOURS)) {
+                es.shutdownNow();
+            }
+
+            List<AssertionRanking> allAssertionRankings = canvasDAOBeanService.getAssertionRankingDAO().findAll();
+
+            List<Pair<LocatedVariant, LocatedVariant>> canonicalLocatedVariants = new ArrayList<>();
+
+            List<ReferenceClinicalAssertion> referenceClinicalAssertions = new ArrayList<>();
+
+            for (ReferenceAssertionType rat : rats) {
+
+                try {
+                    MeasureSetType measureSetType = rat.getMeasureSet();
+
+                    ClinicalSignificanceType clinicalSignificanceType = rat.getClinicalSignificance();
+                    ClinVarAccession clinvarAccession = rat.getClinVarAccession();
+
+                    AssertionRanking assertionRanking = allAssertionRankings.stream()
+                            .filter(a -> a.getId().equals(clinicalSignificanceType.getDescription())).findFirst().get();
+
+                    TraitSetType traitSetType = rat.getTraitSet();
+                    TraitSet traitSet = canvasDAOBeanService.getTraitSetDAO().findById(traitSetType.getID().intValue());
+
+                    if (measureSetType != null && "Variant".equals(measureSetType.getType())) {
+
+                        List<MeasureType> measureTypes = measureSetType.getMeasure();
+
+                        for (MeasureType measureType : measureTypes) {
+
+                            String measure = measureType.getType();
+                            logger.debug("measure: {}", measure);
+
+                            List<SequenceLocationType> sequenceLocationTypeList = measureType.getSequenceLocation();
+
+                            LocatedVariant locatedVariant38 = null;
+                            for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
+
+                                if (sequenceLocationType.getStart() != null
+                                        && (sequenceLocationType.getVariantLength() != null
+                                                && sequenceLocationType.getVariantLength().intValue() < 100)
+                                        && "GRCh38".equals(sequenceLocationType.getAssembly())) {
+
+                                    String accession = sequenceLocationType.getAccession();
+
+                                    GenomeRefSeq genomeRefSeq = all38GenomeRefSeqs.parallelStream().filter(a -> a.getId().equals(accession))
+                                            .findFirst().orElse(null);
+
+                                    if (genomeRefSeq != null) {
+
+                                        logger.debug(genomeRefSeq.toString());
+
+                                        locatedVariant38 = processMutation(measure, sequenceLocationType, gerese4jBuild38, genomeRef38,
+                                                genomeRefSeq, allVariantTypes);
+
+                                        if (locatedVariant38 != null) {
+
+                                            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
+                                                    .findByExample(locatedVariant38);
+                                            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
+                                                locatedVariant38.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant38));
+                                            } else {
+                                                locatedVariant38 = foundLocatedVariants.get(0);
+                                            }
+                                            logger.info(locatedVariant38.toString());
+
+                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion(clinvarAccession.getAcc(),
+                                                    clinvarAccession.getVersion().intValue(),
+                                                    new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()),
+                                                    new java.sql.Date(
+                                                            clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()),
+                                                    rat.getRecordStatus(), clinicalSignificanceType.getReviewStatus().value(),
+                                                    rat.getAssertion().getType().value());
+
+                                            rca.setAssertion(assertionRanking);
+                                            rca.setLocatedVariant(locatedVariant38);
+                                            rca.setTraitSet(traitSet);
+
+                                            referenceClinicalAssertions.add(rca);
+
+                                        }
+                                    }
+                                    break;
+                                }
+
+                            }
+
+                            LocatedVariant locatedVariant37 = null;
+                            for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
+
+                                if (sequenceLocationType.getStart() != null
+                                        && (sequenceLocationType.getVariantLength() != null
+                                                && sequenceLocationType.getVariantLength().intValue() < 100)
+                                        && "GRCh37".equals(sequenceLocationType.getAssembly())) {
+
+                                    String accession = sequenceLocationType.getAccession();
+
+                                    GenomeRefSeq genomeRefSeq = all37GenomeRefSeqs.parallelStream().filter(a -> a.getId().equals(accession))
+                                            .findFirst().orElse(null);
+
+                                    if (genomeRefSeq != null) {
+
+                                        logger.debug(genomeRefSeq.toString());
+
+                                        locatedVariant37 = processMutation(measure, sequenceLocationType, gerese4jBuild37, genomeRef37,
+                                                genomeRefSeq, allVariantTypes);
+                                        if (locatedVariant37 != null) {
+
+                                            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
+                                                    .findByExample(locatedVariant37);
+                                            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
+                                                locatedVariant37.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant37));
+                                            } else {
+                                                locatedVariant37 = foundLocatedVariants.get(0);
+                                            }
+                                            logger.info(locatedVariant37.toString());
+
+                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion(clinvarAccession.getAcc(),
+                                                    clinvarAccession.getVersion().intValue(),
+                                                    new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()),
+                                                    new java.sql.Date(
+                                                            clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()),
+                                                    rat.getRecordStatus(), clinicalSignificanceType.getReviewStatus().value(),
+                                                    rat.getAssertion().getType().value());
+
+                                            rca.setAssertion(assertionRanking);
+                                            rca.setLocatedVariant(locatedVariant37);
+                                            rca.setTraitSet(traitSet);
+
+                                            referenceClinicalAssertions.add(rca);
+
+                                        }
+
+                                    }
+
+                                    break;
+                                }
+
+                            }
+
+                            canonicalLocatedVariants.add(Pair.of(locatedVariant37, locatedVariant38));
+
+                        }
+
+                    }
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                }
+
+            }
+
+            logger.info("persisting ReferenceClinicalAssertions");
+            es = Executors.newFixedThreadPool(2);
+            for (ReferenceClinicalAssertion rca : referenceClinicalAssertions) {
+                es.submit(() -> {
+                    try {
+                        rca.setId(canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca));
+                        rca.getVersions().add(clinvarVersion);
+                        canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
+                        logger.info(rca.toString());
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                });
+            }
+            es.shutdown();
+            if (!es.awaitTermination(2L, TimeUnit.HOURS)) {
+                es.shutdownNow();
+            }
+            referenceClinicalAssertions.clear();
+
+            logger.info("canonicalizing");
+            for (Pair<LocatedVariant, LocatedVariant> pair : canonicalLocatedVariants) {
+
+                LocatedVariant locatedVariant37 = pair.getLeft();
+                LocatedVariant locatedVariant38 = pair.getRight();
+                if (locatedVariant37 == null && locatedVariant38 == null) {
+                    continue;
+                }
+
+                CanonicalAllele canonicalAllele = null;
+
+                List<CanonicalAllele> foundCanonicalAllelesVia38 = new ArrayList<>();
+                if (locatedVariant38 != null) {
+                    foundCanonicalAllelesVia38
+                            .addAll(canvasDAOBeanService.getCanonicalAlleleDAO().findByLocatedVariantId(locatedVariant38.getId()));
+                }
+
+                List<CanonicalAllele> foundCanonicalAllelesVia37 = new ArrayList<>();
+                if (locatedVariant37 != null) {
+                    foundCanonicalAllelesVia37
+                            .addAll(canvasDAOBeanService.getCanonicalAlleleDAO().findByLocatedVariantId(locatedVariant37.getId()));
+                }
+
+                if (CollectionUtils.isEmpty(foundCanonicalAllelesVia37) && CollectionUtils.isEmpty(foundCanonicalAllelesVia38)) {
+
+                    Set<LocatedVariant> locatedVariants = new HashSet<>();
+                    if (locatedVariant37 != null) {
+                        locatedVariants.add(locatedVariant37);
+                    }
+                    if (locatedVariant38 != null) {
+                        locatedVariants.add(locatedVariant38);
+                    }
+                    if (!locatedVariants.isEmpty()) {
+                        canonicalAllele = new CanonicalAllele();
+                        canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
+                        canonicalAllele.getLocatedVariants().addAll(locatedVariants);
+                        canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
+                    }
+                }
+
+                if (CollectionUtils.isNotEmpty(foundCanonicalAllelesVia37) && CollectionUtils.isEmpty(foundCanonicalAllelesVia38)
+                        && locatedVariant38 != null) {
+                    canonicalAllele = foundCanonicalAllelesVia37.get(0);
+                    canonicalAllele.getLocatedVariants().add(locatedVariant38);
+                    canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
+                }
+
+                if (CollectionUtils.isEmpty(foundCanonicalAllelesVia37) && CollectionUtils.isNotEmpty(foundCanonicalAllelesVia38)
+                        && locatedVariant37 != null) {
+                    canonicalAllele = foundCanonicalAllelesVia38.get(0);
+                    canonicalAllele.getLocatedVariants().add(locatedVariant37);
+                    canvasDAOBeanService.getCanonicalAlleleDAO().save(canonicalAllele);
+                }
+
+            }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
 
         long end = System.currentTimeMillis();
-        logger.info("duration = {}", String.format("%d seconds", (end - start) / 1000));
+        logger.info("duration = {}", String.format("%s seconds", (end - start) / 1000D));
 
         return null;
     }
 
-    private void persistAssertion(LocatedVariant locatedVariant, ReferenceAssertionType rat) {
-
-        try {
-            ClinVarAccession clinvarAccession = rat.getClinVarAccession();
-            TraitSetType traitSetType = rat.getTraitSet();
-
-            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion();
-            rca.setAccession(clinvarAccession.getAcc());
-            rca.setRecordStatus(rat.getRecordStatus());
-            rca.setVersion(clinvarAccession.getVersion().intValue());
-            rca.setCreated(new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()));
-            rca.setUpdated(new java.sql.Date(clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()));
-            rca.setLocatedVariant(locatedVariant);
-
-            ClinicalSignificanceType clinicalSignificanceType = rat.getClinicalSignificance();
-            rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
-            AssertionRanking assertionRanking = canvasDAOBeanService.getAssertionRankingDAO()
-                    .findById(clinicalSignificanceType.getDescription());
-            if (assertionRanking == null) {
-                assertionRanking = new AssertionRanking(clinicalSignificanceType.getDescription());
-                canvasDAOBeanService.getAssertionRankingDAO().save(assertionRanking);
-                logger.warn("assign a ranking to: {}", assertionRanking.toString());
-            }
-
-            rca.setAssertion(assertionRanking);
-            rca.setAssertionType(rat.getAssertion().getType().value());
-
-            TraitSet cTraitSet = canvasDAOBeanService.getTraitSetDAO().findById(traitSetType.getID().intValue());
-            if (cTraitSet == null) {
-                cTraitSet = new TraitSet(traitSetType.getID().intValue(), traitSetType.getType());
-                logger.info(cTraitSet.toString());
-                canvasDAOBeanService.getTraitSetDAO().save(cTraitSet);
-            }
-
-            List<TraitType> traitTypeList = traitSetType.getTrait();
-
-            for (TraitType traitType : traitTypeList) {
-
-                Trait cTrait = canvasDAOBeanService.getTraitDAO().findById(traitType.getID().intValue());
-                if (cTrait == null) {
-                    Optional<SetElementSetType> preferredNameOptional = traitType.getName().stream()
-                            .filter(a -> a.getElementValue().getType().equals("Preferred")).findAny();
-                    if (preferredNameOptional.isPresent()) {
-                        cTrait = new Trait(traitType.getID().intValue(), traitType.getType(),
-                                preferredNameOptional.get().getElementValue().getValue());
-                        logger.info(cTrait.toString());
-                        canvasDAOBeanService.getTraitSetDAO().save(cTraitSet);
-                        cTraitSet.getTraits().add(cTrait);
-                    }
-                }
-
-            }
-
-            canvasDAOBeanService.getTraitSetDAO().save(cTraitSet);
-            rca.setTraitSet(cTraitSet);
-            canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
-            logger.info(rca.toString());
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-
-    }
-
     private LocatedVariant processMutation(String measureType, SequenceLocationType sequenceLocationType, GeReSe4jBuild gerese4jBuild,
-            GenomeRef genomeRef, List<VariantType> allVariantTypes) {
+            GenomeRef genomeRef, GenomeRefSeq genomeRefSeq, List<VariantType> allVariantTypes) {
         LocatedVariant locatedVariant = null;
         String refBase = null;
 
-        switch (measureType) {
-            case "Deletion":
-
-                try {
+        try {
+            switch (measureType) {
+                case "Deletion":
 
                     if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
                         refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
@@ -376,15 +521,14 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()), true);
                     }
 
-                    locatedVariant = persistDeletion(allVariantTypes.stream().filter(a -> a.getId().equals("del")).findAny().get(),
-                            genomeRef, sequenceLocationType, refBase);
-                } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
-                }
+                    locatedVariant = LocatedVariantFactory.createDeletion(genomeRef, genomeRefSeq,
+                            allVariantTypes.stream().filter(a -> a.getId().equals("del")).findAny().get(), refBase,
+                            sequenceLocationType.getAlternateAllele(), sequenceLocationType.getStart().intValue());
 
-                break;
-            case "Insertion":
-                try {
+                    break;
+                case "Insertion":
+                case "Duplication":
+
                     if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
                         refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
                                 true);
@@ -393,247 +537,29 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()), true);
                     }
 
-                    locatedVariant = persistInsertion(allVariantTypes.stream().filter(a -> a.getId().equals("ins")).findAny().get(),
-                            genomeRef, sequenceLocationType, refBase);
-                } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
-                }
-
-                break;
-            case "Duplication":
-                try {
-                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
-                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
-                                true);
-                    } else {
-                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
-                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()), true);
+                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())) {
+                        locatedVariant = LocatedVariantFactory.createInsertion(genomeRef, genomeRefSeq,
+                                allVariantTypes.stream().filter(a -> a.getId().equals("ins")).findAny().get(), refBase,
+                                sequenceLocationType.getAlternateAllele(), sequenceLocationType.getStart().intValue());
                     }
 
-                    locatedVariant = persistDuplication(allVariantTypes.stream().filter(a -> a.getId().equals("ins")).findAny().get(),
-                            genomeRef, sequenceLocationType, refBase);
-                } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
-                }
+                    break;
+                case "single nucleotide variant":
 
-                break;
-            case "single nucleotide variant":
-
-                try {
                     refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(), true);
-                    locatedVariant = persistSNP(allVariantTypes.stream().filter(a -> a.getId().equals("snp")).findAny().get(), genomeRef,
-                            sequenceLocationType, refBase);
-                } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
-                }
 
-                break;
-        }
-
-        return locatedVariant;
-    }
-
-    private LocatedVariant persistDeletion(VariantType variantType, GenomeRef genomeRef, SequenceLocationType slt, String refBase) {
-        logger.debug("ENTERING persistDeletion(VariantType, GenomeRef, SequenceLocationType, String, ReferenceAssertionType)");
-        LocatedVariant locatedVariant = null;
-        try {
-
-            GenomeRefSeq genomeRefSeq = canvasDAOBeanService.getGenomeRefSeqDAO().findById(slt.getAccession());
-            logger.info(genomeRefSeq.toString());
-
-            locatedVariant = new LocatedVariant(genomeRef, genomeRefSeq);
-            locatedVariant.setVariantType(variantType);
-            locatedVariant.setSeq(refBase);
-            locatedVariant.setRef(refBase);
-            locatedVariant.setPosition(slt.getStart().intValue());
-            locatedVariant.setEndPosition(slt.getStart().intValue() + slt.getVariantLength().intValue());
-
-            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO().findByExample(locatedVariant);
-            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                locatedVariant.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
-            } else {
-                locatedVariant = foundLocatedVariants.get(0);
-            }
-            logger.info(locatedVariant.toString());
-
-        } catch (CANVASDAOException e) {
-            logger.error(e.getMessage(), e);
-        }
-
-        return locatedVariant;
-    }
-
-    private LocatedVariant persistInsertion(VariantType variantType, GenomeRef genomeRef, SequenceLocationType slt, String refBase) {
-        logger.debug("ENTERING persistInsertion(VariantType, GenomeRef, SequenceLocationType, String)");
-        LocatedVariant locatedVariant = null;
-
-        try {
-
-            GenomeRefSeq genomeRefSeq = canvasDAOBeanService.getGenomeRefSeqDAO().findById(slt.getAccession());
-            logger.info(genomeRefSeq.toString());
-
-            locatedVariant = new LocatedVariant(genomeRef, genomeRefSeq);
-            locatedVariant.setVariantType(variantType);
-
-            if (StringUtils.isEmpty(slt.getAlternateAllele()) && slt.getVariantLength() != null) {
-                locatedVariant.setPosition(slt.getStop().intValue());
-                locatedVariant.setSeq(refBase);
-            }
-
-            if (StringUtils.isNotEmpty(slt.getAlternateAllele())) {
-
-                if (slt.getVariantLength() != null && slt.getVariantLength().intValue() > 1) {
-
-                    char[] alternateChars = slt.getAlternateAllele().toCharArray();
-
-                    StringBuilder charsToRemove = new StringBuilder();
-
-                    char[] referenceChars = refBase.toCharArray();
-
-                    for (int i = 0; i < referenceChars.length; i++) {
-                        if (referenceChars[i] != alternateChars[i]) {
-                            break;
-                        }
-                        charsToRemove.append(referenceChars[i]);
-                    }
-                    if (charsToRemove.length() > 0) {
-                        // remove from front
-                        locatedVariant.setPosition(slt.getStart().intValue() + charsToRemove.length());
-                        locatedVariant.setSeq(slt.getAlternateAllele().replaceFirst(charsToRemove.toString(), ""));
-                    } else {
-                        locatedVariant.setPosition(slt.getStart().intValue());
-                        locatedVariant.setSeq(slt.getAlternateAllele());
+                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())) {
+                        locatedVariant = LocatedVariantFactory.createSNP(genomeRef, genomeRefSeq,
+                                allVariantTypes.stream().filter(a -> a.getId().equals("snp")).findAny().get(), refBase,
+                                sequenceLocationType.getAlternateAllele(), sequenceLocationType.getStart().intValue());
                     }
 
-                } else {
-                    locatedVariant.setPosition(slt.getStart().intValue());
-                    locatedVariant.setSeq(slt.getAlternateAllele());
-                }
-
+                    break;
             }
-            // } else {
-            // // remove from back
-            // for (int i = referenceChars.length - 1; i > 0; --i) {
-            // if (referenceChars[i] != alternateChars[i]) {
-            // break;
-            // }
-            // charsToRemove.append(referenceChars[i]);
-            // }
-            //
-            // if (charsToRemove.length() > 0) {
-            // charsToRemove.reverse();
-            // locatedVariant.setPosition(slt.getStart().intValue());
-            // locatedVariant.setSeq(StringUtils.removeEnd(alt, charsToRemove.toString()));
-            // }
-            // }
-            locatedVariant.setEndPosition(locatedVariant.getPosition() + 1);
-
-            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO().findByExample(locatedVariant);
-            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                locatedVariant.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
-            } else {
-                locatedVariant = foundLocatedVariants.get(0);
-            }
-            logger.info(locatedVariant.toString());
-
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-        return locatedVariant;
-    }
 
-    private LocatedVariant persistDuplication(VariantType variantType, GenomeRef genomeRef, SequenceLocationType slt, String refBase) {
-        logger.debug("ENTERING persistDuplication(VariantType, GenomeRef, SequenceLocationType, String)");
-        LocatedVariant locatedVariant = null;
-
-        try {
-
-            GenomeRefSeq genomeRefSeq = canvasDAOBeanService.getGenomeRefSeqDAO().findById(slt.getAccession());
-            logger.info(genomeRefSeq.toString());
-
-            locatedVariant = new LocatedVariant(genomeRef, genomeRefSeq);
-            locatedVariant.setVariantType(variantType);
-
-            if (StringUtils.isEmpty(slt.getAlternateAllele()) && slt.getVariantLength() != null) {
-                locatedVariant.setPosition(slt.getStop().intValue());
-                locatedVariant.setSeq(refBase);
-            }
-
-            if (StringUtils.isNotEmpty(slt.getAlternateAllele())) {
-
-                if (slt.getVariantLength() != null && slt.getVariantLength().intValue() > 1) {
-
-                    char[] alternateChars = slt.getAlternateAllele().toCharArray();
-
-                    StringBuilder charsToRemove = new StringBuilder();
-
-                    char[] referenceChars = refBase.toCharArray();
-
-                    for (int i = 0; i < referenceChars.length; i++) {
-                        if (referenceChars[i] != alternateChars[i]) {
-                            break;
-                        }
-                        charsToRemove.append(referenceChars[i]);
-                    }
-                    if (charsToRemove.length() > 0) {
-                        // remove from front
-                        locatedVariant.setPosition(slt.getStart().intValue() + charsToRemove.length());
-                        locatedVariant.setSeq(slt.getAlternateAllele().replaceFirst(charsToRemove.toString(), ""));
-                    } else {
-                        locatedVariant.setPosition(slt.getStart().intValue());
-                        locatedVariant.setSeq(slt.getAlternateAllele());
-                    }
-
-                } else {
-                    locatedVariant.setPosition(slt.getStart().intValue());
-                    locatedVariant.setSeq(slt.getAlternateAllele());
-                }
-
-            }
-
-            locatedVariant.setEndPosition(locatedVariant.getPosition() + 1);
-
-            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO().findByExample(locatedVariant);
-            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                locatedVariant.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
-            } else {
-                locatedVariant = foundLocatedVariants.get(0);
-            }
-            logger.info(locatedVariant.toString());
-
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-        return locatedVariant;
-    }
-
-    private LocatedVariant persistSNP(VariantType variantType, GenomeRef genomeRef, SequenceLocationType slt, String refBase) {
-        logger.debug("ENTERING persistSNP(VariantType, GenomeRef, SequenceLocationType, String, ReferenceAssertionType)");
-
-        LocatedVariant locatedVariant = null;
-        try {
-
-            GenomeRefSeq genomeRefSeq = canvasDAOBeanService.getGenomeRefSeqDAO().findById(slt.getAccession());
-            logger.info(genomeRefSeq.toString());
-
-            locatedVariant = new LocatedVariant(genomeRef, genomeRefSeq);
-            locatedVariant.setPosition(slt.getStart().intValue());
-            locatedVariant.setEndPosition(slt.getStart().intValue() + 1);
-            locatedVariant.setVariantType(variantType);
-            locatedVariant.setRef(refBase);
-            locatedVariant.setSeq(slt.getAlternateAllele());
-
-            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO().findByExample(locatedVariant);
-            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                locatedVariant.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
-            } else {
-                locatedVariant = foundLocatedVariants.get(0);
-            }
-            logger.info(locatedVariant.toString());
-
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
         return locatedVariant;
     }
 
