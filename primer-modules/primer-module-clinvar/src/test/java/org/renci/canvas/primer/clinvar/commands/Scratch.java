@@ -29,21 +29,18 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
-import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.var.model.LocatedVariant;
 import org.renci.canvas.dao.var.model.VariantType;
 import org.renci.clinvar.MeasureSetType;
-import org.renci.clinvar.MeasureSetType.Measure;
-import org.renci.clinvar.MeasureSetType.Measure.AttributeSet;
+import org.renci.clinvar.MeasureType;
+import org.renci.clinvar.MeasureType.AttributeSet;
 import org.renci.clinvar.PublicSetType;
 import org.renci.clinvar.ReferenceAssertionType;
 import org.renci.clinvar.ReleaseType;
 import org.renci.clinvar.SequenceLocationType;
-import org.renci.gerese4j.core.GeReSe4jBuild;
 import org.renci.gerese4j.core.impl.GeReSe4jBuild_37_3;
 import org.renci.gerese4j.core.impl.GeReSe4jBuild_38_7;
 
@@ -125,10 +122,10 @@ public class Scratch {
             for (PublicSetType pst : publicSetTypeList) {
                 ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
                 MeasureSetType measureSetType = rat.getMeasureSet();
-                List<Measure> measures = measureSetType.getMeasure();
-                if (CollectionUtils.isNotEmpty(measures)) {
-                    for (Measure measure : measures) {
-                        List<AttributeSet> attributeSet = measure.getAttributeSet().stream()
+                List<MeasureType> measureTypes = measureSetType.getMeasure();
+                if (CollectionUtils.isNotEmpty(measureTypes)) {
+                    for (MeasureType measureType : measureTypes) {
+                        List<AttributeSet> attributeSet = measureType.getAttributeSet().stream()
                                 .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level")
                                         && a.getAttribute().getValue().startsWith("NC_") && a.getAttribute().getIntegerValue() != 36
                                         && !a.getAttribute().getValue().contains("?"))
@@ -170,9 +167,9 @@ public class Scratch {
             for (PublicSetType pst : publicSetTypeList) {
                 ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
                 MeasureSetType measureSetType = rat.getMeasureSet();
-                List<Measure> measures = measureSetType.getMeasure();
+                List<MeasureType> measures = measureSetType.getMeasure();
                 if (CollectionUtils.isNotEmpty(measures)) {
-                    for (Measure measure : measures) {
+                    for (MeasureType measure : measures) {
                         List<AttributeSet> attributeSet = measure.getAttributeSet().stream()
                                 .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level")
                                         && StringUtils.isNotEmpty(a.getAttribute().getValue()) && a.getAttribute().getIntegerValue() != null
@@ -213,9 +210,9 @@ public class Scratch {
             for (PublicSetType pst : publicSetTypeList) {
                 ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
                 MeasureSetType measureSetType = rat.getMeasureSet();
-                List<Measure> measures = measureSetType.getMeasure();
+                List<MeasureType> measures = measureSetType.getMeasure();
                 if (CollectionUtils.isNotEmpty(measures)) {
-                    for (Measure measure : measures) {
+                    for (MeasureType measure : measures) {
 
                         String measureType = measure.getType();
 
@@ -269,9 +266,9 @@ public class Scratch {
             for (PublicSetType pst : publicSetTypeList) {
                 ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
                 MeasureSetType measureSetType = rat.getMeasureSet();
-                List<Measure> measures = measureSetType.getMeasure();
+                List<MeasureType> measures = measureSetType.getMeasure();
                 if (CollectionUtils.isNotEmpty(measures)) {
-                    for (Measure measure : measures) {
+                    for (MeasureType measure : measures) {
 
                         String measureType = measure.getType();
 
@@ -341,7 +338,7 @@ public class Scratch {
     @Test
     public void scratch() throws Exception {
         try (FileInputStream fis = new FileInputStream(new File(
-                "/home/jdr0887/workspace/renci/canvas/primer/primer/primer-server/target/primer-server-0.0.3-SNAPSHOT/data/ClinVar",
+                "/home/jdr0887/workspace/renci/canvas/primer/primer/primer-server/target/primer-server-0.0.5-SNAPSHOT/data/ClinVar",
                 "ClinVarFullRelease_00-latest.xml.gz"));
                 GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 16)).intValue())) {
 
@@ -355,24 +352,25 @@ public class Scratch {
 
             // ReleaseType releaseType = unmarshaller.unmarshal(new PartialXmlEventReader(reader, qName), ReleaseType.class).getValue();
 
+            List<ReferenceAssertionType> rats = new ArrayList<>();
+
             XMLEvent xmlEvent = null;
             while ((xmlEvent = reader.peek()) != null) {
 
                 if (xmlEvent.isStartElement() && ((StartElement) xmlEvent).getName().equals(qName)) {
 
                     ReferenceAssertionType rat = unmarshaller.unmarshal(reader, ReferenceAssertionType.class).getValue();
-
                     MeasureSetType measureSetType = rat.getMeasureSet();
 
-                    if ("Variant".equals(measureSetType.getType())) {
+                    if (measureSetType != null && "Variant".equals(measureSetType.getType())) {
 
-                        List<Measure> measures = measureSetType.getMeasure();
+                        List<MeasureType> measures = measureSetType.getMeasure();
 
                         if (CollectionUtils.isEmpty(measures)) {
                             continue;
                         }
 
-                        for (Measure measure : measures) {
+                        for (MeasureType measure : measures) {
 
                             List<AttributeSet> filters = measure.getAttributeSet().stream()
                                     .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
@@ -393,20 +391,22 @@ public class Scratch {
 
                             String measureType = measure.getType();
 
-                            List<SequenceLocationType> sequenceLocationTypeList = measure.getSequenceLocation();
+                            rats.add(rat);
 
-                            for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-                                // filtering conditions
-                                if (sequenceLocationType.getStart() == null) {
-                                    continue;
-                                }
-
-                                if (sequenceLocationType.getVariantLength() == null || (sequenceLocationType.getVariantLength() != null
-                                        && sequenceLocationType.getVariantLength().intValue() > 100)) {
-                                    continue;
-                                }
-                                System.out.println(sequenceLocationType.getAccession());
-                            }
+                            // List<SequenceLocationType> sequenceLocationTypeList = measure.getSequenceLocation();
+                            //
+                            // for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
+                            // // filtering conditions
+                            // if (sequenceLocationType.getStart() == null) {
+                            // continue;
+                            // }
+                            //
+                            // if (sequenceLocationType.getVariantLength() == null || (sequenceLocationType.getVariantLength() != null
+                            // && sequenceLocationType.getVariantLength().intValue() > 100)) {
+                            // continue;
+                            // }
+                            // System.out.println(sequenceLocationType.getAccession());
+                            // }
                         }
 
                     }
@@ -414,6 +414,8 @@ public class Scratch {
                     reader.next();
                 }
             }
+            System.out.println(rats.size());
+
         } catch (IOException e) {
             e.printStackTrace();
         }
