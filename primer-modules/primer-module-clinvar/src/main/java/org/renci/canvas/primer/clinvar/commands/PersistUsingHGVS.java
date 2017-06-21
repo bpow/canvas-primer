@@ -30,10 +30,10 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.renci.canvas.dao.CANVASDAOBeanService;
 import org.renci.canvas.dao.clinvar.model.AssertionRanking;
+import org.renci.canvas.dao.clinvar.model.ClinVarVersion;
 import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
-import org.renci.canvas.dao.clinvar.model.ClinVarVersion;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.LocatedVariant;
@@ -41,8 +41,8 @@ import org.renci.canvas.dao.var.model.VariantType;
 import org.renci.canvas.primer.commons.FTPFactory;
 import org.renci.clinvar.ClinicalSignificanceType;
 import org.renci.clinvar.MeasureSetType;
-import org.renci.clinvar.MeasureSetType.Measure;
-import org.renci.clinvar.MeasureSetType.Measure.AttributeSet;
+import org.renci.clinvar.MeasureType;
+import org.renci.clinvar.MeasureType.AttributeSet;
 import org.renci.clinvar.PublicSetType;
 import org.renci.clinvar.ReferenceAssertionType;
 import org.renci.clinvar.ReferenceAssertionType.ClinVarAccession;
@@ -91,7 +91,7 @@ public class PersistUsingHGVS implements Callable<Void> {
                     String.format("ClinVarFullRelease_%s.xml.gz", date));
 
             ClinVarVersion clinvarVersion = new ClinVarVersion(clinvarXmlFile.getName());
-            clinvarVersion.setId(canvasDAOBeanService.getVersionDAO().save(clinvarVersion));
+            clinvarVersion.setId(canvasDAOBeanService.getClinVarVersionDAO().save(clinvarVersion));
 
             List<String> schemaFileList = FTPFactory.ncbiListRemoteFiles("/pub/clinvar/xsd_public", "clinvar_public_", ".xsd");
 
@@ -147,13 +147,13 @@ public class PersistUsingHGVS implements Callable<Void> {
 
                         MeasureSetType measureSetType = rat.getMeasureSet();
                         if ("Variant".equals(measureSetType.getType())) {
-                            List<Measure> measures = measureSetType.getMeasure();
+                            List<MeasureType> measureTypes = measureSetType.getMeasure();
 
-                            if (CollectionUtils.isNotEmpty(measures)) {
+                            if (CollectionUtils.isNotEmpty(measureTypes)) {
 
-                                for (Measure measure : measures) {
+                                for (MeasureType measureType : measureTypes) {
 
-                                    List<AttributeSet> attributeSets = measure.getAttributeSet().stream()
+                                    List<AttributeSet> attributeSets = measureType.getAttributeSet().stream()
                                             .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level")
                                                     && a.getAttribute().getValue().startsWith("NC_")
                                                     && a.getAttribute().getIntegerValue() != 36
