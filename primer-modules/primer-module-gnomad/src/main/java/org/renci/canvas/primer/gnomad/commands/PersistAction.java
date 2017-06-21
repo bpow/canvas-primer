@@ -73,8 +73,8 @@ public class PersistAction implements Action {
 
                     for (VariantContext variantContext : vcfFileReader) {
 
-                        GenomeRefSeq genomeRefSeq = allGenomeRefSeqs.stream().filter(a -> a.getContig().equals(variantContext.getContig()))
-                                .findFirst().get();
+                        GenomeRefSeq genomeRefSeq = allGenomeRefSeqs.parallelStream()
+                                .filter(a -> a.getContig().equals(variantContext.getContig())).findFirst().get();
 
                         CommonInfo commonInfo = variantContext.getCommonInfo();
 
