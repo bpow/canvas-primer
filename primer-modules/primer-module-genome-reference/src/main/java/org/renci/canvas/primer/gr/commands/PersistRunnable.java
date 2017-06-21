@@ -1,6 +1,5 @@
 package org.renci.canvas.primer.gr.commands;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -139,7 +138,7 @@ public class PersistRunnable implements Callable<Void> {
 
         String gi = idParts[1];
         String genomeRefAccession = idParts[3];
-        String desc = idParts[4];
+        String desc = idParts[4].trim();
 
         if (desc.contains("chromosome")) {
 
