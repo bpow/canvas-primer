@@ -103,5 +103,6 @@
     <module>primer-module-genome-reference</module>
     <module>primer-module-omim</module>
     <module>primer-module-refseq</module>
+    <module>primer-module-1000genomes</module>
   </modules>
 </project>
