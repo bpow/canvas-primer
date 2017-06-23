@@ -1,15 +1,23 @@
 package org.renci.canvas.primer.gnomad;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
+
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFFileReader;
 
 public class Scratch {
 
@@ -65,6 +73,38 @@ public class Scratch {
         if (m.matches()) {
             String version = m.group("version");
             System.out.println(version);
+        }
+
+    }
+
+    @Test
+    public void fragmentation() throws Exception {
+
+        File download = new File("/home/jdr0887/Downloads/gnomad", "gnomad.exomes.r2.0.1.sites.20.vcf");
+
+        List<VariantContext> variantContextList = new ArrayList<>();
+
+        try (VCFFileReader vcfFileReader = new VCFFileReader(download, false)) {
+
+            for (VariantContext variantContext : vcfFileReader) {
+                variantContextList.add(variantContext);
+                if ((variantContextList.size() % 10000) == 0) {
+                    try (FileOutputStream fos = new FileOutputStream(
+                            new File("/tmp", String.format("%s.txt", UUID.randomUUID().toString())));
+                            GZIPOutputStream gzipos = new GZIPOutputStream(fos, Double.valueOf(Math.pow(2, 14)).intValue());
+                            ObjectOutputStream oos = new ObjectOutputStream(gzipos)) {
+                        oos.writeObject(variantContextList);
+                    }
+                    variantContextList.clear();
+                }
+            }
+        }
+
+        try (FileOutputStream fos = new FileOutputStream(
+                new File("/tmp", String.format("%s.txt", UUID.randomUUID().toString())));
+                GZIPOutputStream gzipos = new GZIPOutputStream(fos, Double.valueOf(Math.pow(2, 14)).intValue());
+                ObjectOutputStream oos = new ObjectOutputStream(gzipos)) {
+            oos.writeObject(variantContextList);
         }
 
     }
