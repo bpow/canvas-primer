@@ -97,13 +97,13 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             // vardb_berg_38_migration has different name than GeReSe4jBuild.getVersion(), using hardcoded id instead
 
-            GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion()))
-                    .findFirst().get();
-            // GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getId().equals(4)).findFirst().get();
+            // GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion()))
+            // .findFirst().get();
+            GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getId().equals(4)).findFirst().get();
 
-            GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild37.getBuild().getVersion()))
-                    .findFirst().get();
-            // GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getId().equals(2)).findFirst().get();
+            // GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild37.getBuild().getVersion()))
+            // .findFirst().get();
+            GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getId().equals(2)).findFirst().get();
 
             List<GenomeRefSeq> all38GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef38.getId());
             List<GenomeRefSeq> all37GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef37.getId());
@@ -210,8 +210,9 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             }
             traitSets.clear();
 
-            logger.info("persisting Traits");
             Set<Trait> traits = new HashSet<>();
+            
+            logger.info("persisting Traits");
             rats.parallelStream().forEach(a -> {
                 List<TraitType> traitTypeList = a.getTraitSet().getTrait();
                 for (TraitType traitType : traitTypeList) {
@@ -419,8 +420,10 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             }
 
+            logger.info("referenceClinicalAssertions.size(): {}", referenceClinicalAssertions.size());
+
             logger.info("persisting ReferenceClinicalAssertions");
-            es = Executors.newFixedThreadPool(2);
+            es = Executors.newFixedThreadPool(4);
             for (ReferenceClinicalAssertion rca : referenceClinicalAssertions) {
                 es.submit(() -> {
                     try {
@@ -434,10 +437,12 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                 });
             }
             es.shutdown();
-            if (!es.awaitTermination(2L, TimeUnit.HOURS)) {
+            if (!es.awaitTermination(1L, TimeUnit.DAYS)) {
                 es.shutdownNow();
             }
             referenceClinicalAssertions.clear();
+
+            logger.info("canonicalLocatedVariants.size(): {}", canonicalLocatedVariants.size());
 
             logger.info("canonicalizing");
             for (Pair<LocatedVariant, LocatedVariant> pair : canonicalLocatedVariants) {
