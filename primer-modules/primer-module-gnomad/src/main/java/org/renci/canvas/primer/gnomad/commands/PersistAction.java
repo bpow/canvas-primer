@@ -137,7 +137,7 @@ public class PersistAction implements Action {
 
                     if (CollectionUtils.isNotEmpty(vcList)) {
 
-                        ExecutorService es = Executors.newFixedThreadPool(2);
+                        ExecutorService es = Executors.newFixedThreadPool(3);
 
                         for (VariantContext variantContext : vcList) {
 
