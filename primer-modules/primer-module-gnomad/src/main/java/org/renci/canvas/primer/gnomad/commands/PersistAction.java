@@ -80,11 +80,11 @@ public class PersistAction implements Action {
         Executors.newSingleThreadExecutor().submit(() -> {
 
             try {
-                List<GenomeRef> allGenomeRefs = canvasDAOBeanService.getGenomeRefDAO().findAll();
-                GenomeRef genomeRef = allGenomeRefs.stream().filter(a -> a.getName().startsWith("37"))
-                        .sorted((a, b) -> a.getName().compareTo(b.getName())).findFirst().get();
+                // List<GenomeRef> allGenomeRefs = canvasDAOBeanService.getGenomeRefDAO().findAll();
+                // GenomeRef genomeRef = allGenomeRefs.stream().filter(a -> a.getName().startsWith("37"))
+                // .sorted((a, b) -> a.getName().compareTo(b.getName())).findFirst().get();
 
-                // GenomeRef genomeRef = canvasDAOBeanService.getGenomeRefDAO().findById(2);
+                GenomeRef genomeRef = canvasDAOBeanService.getGenomeRefDAO().findById(2);
 
                 List<VariantType> allVariantTypes = canvasDAOBeanService.getVariantTypeDAO().findAll();
 
