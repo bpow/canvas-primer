@@ -122,6 +122,8 @@ public class PersistAction implements Action {
                 }
                 variantContextList.clear();
 
+                logger.info("fragmentedVCFiles.size(): {}", fragmentedVCFiles.size());
+
                 for (File serializationFile : fragmentedVCFiles) {
 
                     List<VariantContext> vcList = null;
@@ -134,7 +136,8 @@ public class PersistAction implements Action {
                     }
 
                     if (CollectionUtils.isNotEmpty(vcList)) {
-                        ExecutorService es = Executors.newFixedThreadPool(4);
+
+                        ExecutorService es = Executors.newFixedThreadPool(3);
 
                         for (VariantContext variantContext : vcList) {
 
@@ -298,10 +301,10 @@ public class PersistAction implements Action {
                         }
 
                     }
-                }
 
-                for (File serializationFile : fragmentedVCFiles) {
+                    logger.info(String.format("%s/%s done", fragmentedVCFiles.indexOf(serializationFile), fragmentedVCFiles.size()));
                     serializationFile.delete();
+
                 }
 
             } catch (Exception e) {
