@@ -137,7 +137,7 @@ public class PersistAction implements Action {
 
                     if (CollectionUtils.isNotEmpty(vcList)) {
 
-                        ExecutorService es = Executors.newFixedThreadPool(3);
+                        ExecutorService es = Executors.newFixedThreadPool(2);
 
                         for (VariantContext variantContext : vcList) {
 
@@ -168,7 +168,7 @@ public class PersistAction implements Action {
                                         int alleleIndex = variantContext.getAlleleIndex(altAllele);
                                         logger.debug("alleleIndex: {}", alleleIndex);
 
-                                        Arrays.asList("AFR", "AMR", "ASJ", "EAS", "FIN", "NFE", "OTH", "SAS").stream()
+                                        Arrays.asList("AFR", "AMR", "ASJ", "EAS", "FIN", "NFE", "OTH", "SAS").parallelStream()
                                                 .forEach(population -> {
 
                                                     try {
