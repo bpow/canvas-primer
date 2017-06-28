@@ -12,12 +12,12 @@
   <packaging>pom</packaging>
   <properties>
     <maven.site.plugin.skip>false</maven.site.plugin.skip>
-    <renci.canvas.dao.version>0.0.63</renci.canvas.dao.version>
+    <renci.canvas.dao.version>0.0.64</renci.canvas.dao.version>
     <biojava.version>4.2.7</biojava.version>
     <htsjdk.version>2.8.1</htsjdk.version>
-    <gbff.parser.version>0.0.27</gbff.parser.version>
+    <gbff.parser.version>0.0.30</gbff.parser.version>
     <clinvar.version>1.47</clinvar.version>
-    <gff3.parser.version>0.0.8</gff3.parser.version>
+    <gff3.parser.version>0.0.9</gff3.parser.version>
     <hgvs.parser.version>0.0.6</hgvs.parser.version>        
   </properties>
   <issueManagement>
