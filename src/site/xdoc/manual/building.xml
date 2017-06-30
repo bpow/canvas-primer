@@ -1,0 +1,66 @@
+<document>
+  <properties>
+  </properties>
+  <body>
+    <section name="Building">
+      <subsection name="Prerequisites">
+	<p>The canvas-dao project is %100 Java and is built using the Apache Maven build system.</p>
+	<p>Prerequisites include:</p>
+	<ul>
+	  <li>Java 1.7+ (ensure JAVA_HOME is set in your environment)</li>
+	  <li>Apache Maven 3</li>
+	</ul>
+      </subsection>
+      <subsection name="Maven Settings">
+	<p>You will need a ~/.m2/settings.xml with the correct
+	artifact repository enabled.  Here is an example:</p>
+	<source><![CDATA[
+<settings>
+  <profiles>
+    <profile>
+      <id>dev</id>
+      <repositories>
+	<repository>
+	  <id>renci.repository</id>
+	  <name>renci.repository</name>
+	  <url>http://archiva.renci.org:8080/repository/internal</url>
+	  <releases>
+	    <enabled>true</enabled>
+	  </releases>
+	  <snapshots>
+	    <enabled>false</enabled>
+	  </snapshots>
+	</repository>
+      </repositories>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>dev</activeProfile>
+  </activeProfiles>
+</settings>
+]]></source>
+      </subsection>
+      <subsection name="Commands">
+	<table border="1" class="bodyTable">
+	  <tr class="a">
+	    <td align="left">mvn clean install</td> 
+	    <td align="left">"clean" removes the target directory &amp;
+	    "install" compiles the code into the target directory</td>
+	  </tr>
+	  <tr class="a">
+	    <td align="left">mvn eclipse:eclipse</td>
+	    <td align="left">creates ".project" &amp; ".classpath" files</td>
+	  </tr>
+	</table>
+      </subsection>
+      <subsection name="Misc.">
+	<p>Setting the following helps ensure a successfull build:</p>
+	<pre>
+export JAVA_OPTS="-Xmx4g"
+export MAVEN_OPTS="$JAVA_OPTS"
+	</pre>
+	<p>Note that "-XX:-UseSplitVerifier" is not needed with JDK 8.</p>
+      </subsection>
+    </section>
+  </body>
+</document>

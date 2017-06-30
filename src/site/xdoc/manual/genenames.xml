@@ -1,0 +1,23 @@
+<document>
+  <properties>
+  </properties>
+  <body>
+    <section name="Schemas">
+      <subsection name="ref">
+	<a href="../images/schemas/ref.jpg">Enterprise Architect generated schema diagram</a>
+      </subsection>
+      <subsection name="refseq">
+	<a href="../images/schemas/refseq.jpg">Enterprise Architect generated schema diagram</a>	
+      </subsection>      
+      <subsection name="clinbin">
+	<a href="../images/schemas/clinbin.jpg">Enterprise Architect generated schema diagram</a>	
+      </subsection>
+      <subsection name="var">
+	<a href="../images/schemas/var.jpg">Enterprise Architect generated schema diagram</a>	
+      </subsection>
+      <subsection name="annot">
+	<a href="../images/schemas/annot.jpg">Enterprise Architect generated schema diagram</a>	
+      </subsection>      
+    </section>
+  </body>
+</document>
