@@ -13,6 +13,12 @@
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
   </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+    </dependency>    
+  </dependencies>
   <build>
     <plugins>
       <plugin>
