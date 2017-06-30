@@ -18,7 +18,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -184,6 +186,7 @@ public class PersistAction implements Action {
 
                     }
 
+                    f.delete();
                 }
 
                 File tmpFile = new File(refseqTmpDir, String.format("%s.txt", UUID.randomUUID().toString()));
@@ -197,6 +200,7 @@ public class PersistAction implements Action {
                 sequences.clear();
 
                 GroupingType singleGroupingType = allGroupingTypes.stream().filter(a -> a.getId().equals("single")).findAny().get();
+                logger.info("serializedSequenceFiles.size(): {}", serializedSequenceFiles.size());
 
                 for (File serializedSequenceFile : serializedSequenceFiles) {
 
@@ -231,24 +235,36 @@ public class PersistAction implements Action {
                         }
                     }
 
+                    ExecutorService es = Executors.newFixedThreadPool(3);
                     for (Sequence sequence : sequenceList) {
-                        logger.info(sequence.toString());
-                        try {
+                        es.submit(() -> {
 
-                            Transcript transcript = persistTranscript(refseqVersion, sequence);
+                            logger.info(sequence.toString());
+                            try {
 
-                            persistGenes(refseqVersion, transcript, singleGroupingType, sequence.getFeatures());
+                                Transcript transcript = persistTranscript(refseqVersion, sequence);
+                                logger.info(transcript.toString());
 
-                            persistCodingSequence(refseqVersion, transcript, singleGroupingType, sequence.getFeatures());
+                                persistGenes(refseqVersion, transcript, singleGroupingType, sequence.getFeatures());
 
-                            persistFeatures(refseqVersion, transcript, allGroupingTypes, sequence.getFeatures());
+                                persistCodingSequence(refseqVersion, transcript, singleGroupingType, sequence.getFeatures());
 
-                            persistMappings(refseqVersion, transcript, alignmentMap);
+                                persistFeatures(refseqVersion, transcript, allGroupingTypes, sequence.getFeatures());
 
-                        } catch (Exception e) {
-                            logger.error(e.getMessage(), e);
-                        }
+                                persistMappings(refseqVersion, transcript, alignmentMap);
+
+                            } catch (Exception e) {
+                                logger.error(e.getMessage(), e);
+                            }
+
+                        });
                     }
+                    es.shutdown();
+                    if (!es.awaitTermination(1L, TimeUnit.DAYS)) {
+                        es.shutdownNow();
+                    }
+
+                    serializedSequenceFile.delete();
 
                 }
             } catch (Exception e) {
@@ -607,6 +623,7 @@ public class PersistAction implements Action {
             } else {
                 refseqGene = foundRefseqGenes.get(0);
             }
+            logger.info(refseqGene.toString());
 
             String location = geneFeature.getLocation();
             Integer start = null;
@@ -764,7 +781,6 @@ public class PersistAction implements Action {
             canvasDAOBeanService.getTranscriptDAO().save(transcript);
         }
 
-        logger.info(transcript.toString());
         return transcript;
     }
 
