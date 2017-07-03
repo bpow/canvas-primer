@@ -302,7 +302,7 @@ public class PersistAction implements Action {
 
                     }
 
-                    logger.info(String.format("%s/%s done", fragmentedVCFiles.indexOf(serializationFile), fragmentedVCFiles.size()));
+                    logger.info(String.format("%s/%s done", fragmentedVCFiles.indexOf(serializationFile) + 1, fragmentedVCFiles.size()));
                     serializationFile.delete();
 
                 }
@@ -319,8 +319,7 @@ public class PersistAction implements Action {
     private Pair<String, File> downloadLatest() {
 
         File download = new File(getGnomadExomesVCF());
-
-        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.\\d+\\.vcf");
+        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.(\\d+|X|Y)\\.vcf");
         Matcher m = p.matcher(download.getName());
         m.find();
         String version = null;
