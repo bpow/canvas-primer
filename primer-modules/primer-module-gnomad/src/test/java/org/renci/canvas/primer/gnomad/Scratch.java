@@ -65,9 +65,9 @@ public class Scratch {
     @Test
     public void downloadVersionRegex() {
 
-        File download = new File("/home/jdr0887/Downloads", "gnomad.exomes.r2.0.1.sites.vcf");
+        File download = new File("/home/jdr0887/Downloads", "gnomad.exomes.r2.0.1.sites.X.vcf");
 
-        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.vcf");
+        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.(\\d+|X|Y)\\.vcf");
         Matcher m = p.matcher(download.getName());
         m.find();
         if (m.matches()) {
