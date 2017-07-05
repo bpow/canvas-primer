@@ -12,7 +12,6 @@ import org.apache.karaf.shell.api.action.Option;
 import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.renci.canvas.dao.CANVASDAOBeanService;
-import org.renci.canvas.dao.CANVASDAOException;
 import org.renci.canvas.dao.annotation.model.AnnotationGene;
 import org.renci.canvas.dao.clinbin.model.DX;
 import org.renci.canvas.dao.clinbin.model.DiagnosticGene;
@@ -108,15 +107,17 @@ public class AddDiagnosticGeneListAction implements Action {
 
                         DiagnosticGene diagnosticGene = new DiagnosticGene(annotationGene, finalDiagnosticListVersion, finalDX, tier,
                                 inheritance);
+                        logger.info(diagnosticGene.toString());
 
                         List<DiagnosticGene> foundDiagnosticGenes = canvasDAOBeanService.getDiagnosticGeneDAO()
                                 .findByExample(diagnosticGene);
+                        logger.info("foundDiagnosticGenes.size(): {}", foundDiagnosticGenes.size());
                         if (CollectionUtils.isEmpty(foundDiagnosticGenes)) {
                             diagnosticGene.setId(canvasDAOBeanService.getDiagnosticGeneDAO().save(diagnosticGene));
                         } else {
                             diagnosticGene = foundDiagnosticGenes.get(0);
                         }
-                    } catch (CANVASDAOException e) {
+                    } catch (Exception e) {
                         logger.error(e.getMessage(), e);
                     }
 
@@ -131,6 +132,7 @@ public class AddDiagnosticGeneListAction implements Action {
                     newDiagnosticGeneGroupVersion.setDx(diagnosticGeneGroupVersion.getDx());
                     newDiagnosticGeneGroupVersion
                             .setId(canvasDAOBeanService.getDiagnosticGeneGroupVersionDAO().save(newDiagnosticGeneGroupVersion));
+                    logger.info(newDiagnosticGeneGroupVersion.toString());
                 }
 
                 DiagnosticGeneGroupVersionPK diagnosticGeneGroupVersionPK = new DiagnosticGeneGroupVersionPK(maxDiagnosticBinGroupVersion,
@@ -139,6 +141,7 @@ public class AddDiagnosticGeneListAction implements Action {
                 newDiagnosticGeneGroupVersion.setDx(dx);
                 newDiagnosticGeneGroupVersion
                         .setId(canvasDAOBeanService.getDiagnosticGeneGroupVersionDAO().save(newDiagnosticGeneGroupVersion));
+                logger.info(newDiagnosticGeneGroupVersion.toString());
 
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
