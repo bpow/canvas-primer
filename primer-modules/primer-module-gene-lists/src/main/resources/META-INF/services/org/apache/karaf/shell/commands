@@ -1,1 +1,3 @@
-org.renci.canvas.primer.genes.commands.PersistAction
+org.renci.canvas.primer.genes.commands.ListDXAction
+org.renci.canvas.primer.genes.commands.AddDiagnosticGeneListAction
+org.renci.canvas.primer.genes.commands.GenerateGeneListSupportFilesAction
