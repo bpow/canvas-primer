@@ -678,11 +678,12 @@ public class PersistAction implements Action {
 
             }
 
-            AnnotationGene annotationGene = new AnnotationGene(geneName, geneDesc);
-            List<AnnotationGene> foundAnnotationGenes = canvasDAOBeanService.getAnnotationGeneDAO().findByExample(annotationGene);
+            AnnotationGene annotationGene = null;
+
+            List<AnnotationGene> foundAnnotationGenes = canvasDAOBeanService.getAnnotationGeneDAO().findByName(geneName);
             if (CollectionUtils.isEmpty(foundAnnotationGenes)) {
-                Integer geneId = canvasDAOBeanService.getAnnotationGeneDAO().save(annotationGene);
-                annotationGene.setId(geneId);
+                annotationGene = new AnnotationGene(geneName, geneDesc);
+                annotationGene.setId(canvasDAOBeanService.getAnnotationGeneDAO().save(annotationGene));
             } else {
                 annotationGene = foundAnnotationGenes.get(0);
             }
