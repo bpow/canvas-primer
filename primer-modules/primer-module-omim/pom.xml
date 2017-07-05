@@ -2,13 +2,13 @@
   <parent>
     <groupId>org.renci.canvas.primer</groupId>
     <artifactId>primer-modules</artifactId>
-    <version>0.0.8</version>
+    <version>0.0.9-SNAPSHOT</version>
   </parent>
   <name>CANVAS :: Primer :: Modules :: OMIM</name>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas.primer.primer-modules</groupId>
   <artifactId>primer-module-omim</artifactId>
-  <version>0.0.8</version>
+  <version>0.0.9-SNAPSHOT</version>
   <packaging>bundle</packaging>
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
