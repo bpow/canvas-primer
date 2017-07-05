@@ -43,6 +43,8 @@ public class AddDiagnosticGeneListAction implements Action {
     public Object execute() throws Exception {
         logger.debug("ENTERING execute()");
 
+        logger.info(dxName);
+
         File geneNameInheritanceTierMap = new File(geneNameInheritanceTierMapFile);
         if (!geneNameInheritanceTierMap.exists()) {
             logger.error("geneNameInheritanceTierMapFile does not exist: {}", geneNameInheritanceTierMapFile);
@@ -57,19 +59,22 @@ public class AddDiagnosticGeneListAction implements Action {
                     dxName = dxName.replaceAll("\"", "");
                 }
 
-                List<DX> foundDXs = canvasDAOBeanService.getDXDAO().findByName(dxName);
                 DX dx = null;
+
+                List<DX> foundDXs = canvasDAOBeanService.getDXDAO().findByName(dxName);
                 if (CollectionUtils.isEmpty(foundDXs)) {
                     dx = new DX(dxName);
                     dx.setId(canvasDAOBeanService.getDXDAO().save(dx));
                 } else {
                     dx = foundDXs.get(0);
                 }
+                logger.info(dx.toString());
 
                 Integer diagnosticListVersion = canvasDAOBeanService.getDiagnosticGeneDAO().findMaxDiagnosticListVersionByDxId(dx.getId());
                 if (diagnosticListVersion == null) {
                     diagnosticListVersion = 0;
                 }
+                logger.info("diagnosticListVersion: {}", diagnosticListVersion);
                 ++diagnosticListVersion;
 
                 Integer maxDiagnosticBinGroupVersion = canvasDAOBeanService.getDiagnosticGeneGroupVersionDAO()
@@ -77,6 +82,7 @@ public class AddDiagnosticGeneListAction implements Action {
                 if (maxDiagnosticBinGroupVersion == null) {
                     maxDiagnosticBinGroupVersion = 0;
                 }
+                logger.info("maxDiagnosticBinGroupVersion: {}", maxDiagnosticBinGroupVersion);
 
                 List<DiagnosticGeneGroupVersion> diagnosticGeneGroupVersions = canvasDAOBeanService.getDiagnosticGeneGroupVersionDAO()
                         .findByDBinGroupVersion(maxDiagnosticBinGroupVersion);
@@ -107,7 +113,6 @@ public class AddDiagnosticGeneListAction implements Action {
 
                         DiagnosticGene diagnosticGene = new DiagnosticGene(annotationGene, finalDiagnosticListVersion, finalDX, tier,
                                 inheritance);
-                        logger.info(diagnosticGene.toString());
 
                         List<DiagnosticGene> foundDiagnosticGenes = canvasDAOBeanService.getDiagnosticGeneDAO()
                                 .findByExample(diagnosticGene);
@@ -117,6 +122,7 @@ public class AddDiagnosticGeneListAction implements Action {
                         } else {
                             diagnosticGene = foundDiagnosticGenes.get(0);
                         }
+                        logger.info(diagnosticGene.toString());
                     } catch (Exception e) {
                         logger.error(e.getMessage(), e);
                     }
