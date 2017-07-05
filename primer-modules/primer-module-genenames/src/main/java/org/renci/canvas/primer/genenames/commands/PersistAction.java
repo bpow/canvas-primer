@@ -180,10 +180,12 @@ public class PersistAction implements Action {
                                 }
                                 logger.info(hgncGene.toString());
 
-                                AnnotationGene annotationGene = new AnnotationGene(hgncGene.getSymbol(), hgncGene.getName());
+                                AnnotationGene annotationGene = null;
+
                                 List<AnnotationGene> foundAnnotationGenes = canvasDAOBeanService.getAnnotationGeneDAO()
-                                        .findByExample(annotationGene);
+                                        .findByName(hgncGene.getSymbol());
                                 if (CollectionUtils.isEmpty(foundAnnotationGenes)) {
+                                    annotationGene = new AnnotationGene(hgncGene.getSymbol(), hgncGene.getName());
                                     annotationGene.setId(canvasDAOBeanService.getAnnotationGeneDAO().save(annotationGene));
                                 } else {
                                     annotationGene = foundAnnotationGenes.get(0);
