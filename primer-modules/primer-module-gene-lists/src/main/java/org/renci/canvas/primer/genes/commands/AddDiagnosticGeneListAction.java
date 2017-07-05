@@ -21,7 +21,7 @@ import org.renci.canvas.dao.clinbin.model.DiagnosticGeneGroupVersionPK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Command(scope = "gene-lists", name = "generate-gene-list-files", description = "")
+@Command(scope = "gene-lists", name = "add-diagnostic-gene-list", description = "")
 @Service
 public class AddDiagnosticGeneListAction implements Action {
 
@@ -53,6 +53,10 @@ public class AddDiagnosticGeneListAction implements Action {
         Executors.newSingleThreadExecutor().submit(() -> {
 
             try {
+
+                if (dxName.contains("\"")) {
+                    dxName = dxName.replaceAll("\"", "");
+                }
 
                 List<DX> foundDXs = canvasDAOBeanService.getDXDAO().findByName(dxName);
                 DX dx = null;
