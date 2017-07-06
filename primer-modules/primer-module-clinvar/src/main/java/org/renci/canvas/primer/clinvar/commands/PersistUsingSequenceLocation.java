@@ -41,6 +41,7 @@ import org.renci.canvas.dao.var.model.CanonicalAllele;
 import org.renci.canvas.dao.var.model.LocatedVariant;
 import org.renci.canvas.dao.var.model.VariantType;
 import org.renci.canvas.primer.commons.FTPFactory;
+import org.renci.canvas.primer.commons.UpdateDiagnosticResultVersionCallable;
 import org.renci.clinvar.ClinicalSignificanceType;
 import org.renci.clinvar.MeasureSetType;
 import org.renci.clinvar.MeasureType;
@@ -211,7 +212,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             traitSets.clear();
 
             Set<Trait> traits = new HashSet<>();
-            
+
             logger.info("persisting Traits");
             rats.parallelStream().forEach(a -> {
                 List<TraitType> traitTypeList = a.getTraitSet().getTrait();
@@ -499,6 +500,10 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                 }
 
             }
+
+            UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
+            callable.setNote(String.format("%s%n%s%n", "Pulling latest ClinVar:", clinvarVersion.toString()));
+
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
