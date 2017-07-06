@@ -15,6 +15,14 @@
   </properties>    
   <dependencies>
     <dependency>
+      <groupId>org.renci.canvas.canvas-dao</groupId>
+      <artifactId>canvas-dao-jpa</artifactId>
+    </dependency>
+    <dependency>      
+      <groupId>org.renci.canvas.primer.primer-dao</groupId>
+      <artifactId>primer-dao-jpa</artifactId>
+    </dependency>    
+    <dependency>
       <groupId>commons-net</groupId>
       <artifactId>commons-net</artifactId>
     </dependency>            
