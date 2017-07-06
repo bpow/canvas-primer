@@ -36,6 +36,7 @@ import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.LocatedVariant;
 import org.renci.canvas.dao.var.model.VariantType;
+import org.renci.canvas.primer.commons.UpdateDiagnosticResultVersionCallable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,7 @@ public class PersistAction implements Action {
                     for (VariantContext variantContext : vcfFileReader) {
                         variantContextList.add(variantContext);
                         if ((variantContextList.size() % 10000) == 0) {
-                            File f = new File(gnomadTmpDir, String.format("%s.txt", UUID.randomUUID().toString()));
+                            File f = new File(gnomadTmpDir, String.format("%s", UUID.randomUUID().toString()));
                             fragmentedVCFiles.add(f);
                             try (FileOutputStream fos = new FileOutputStream(f);
                                     GZIPOutputStream gzipos = new GZIPOutputStream(fos, Double.valueOf(Math.pow(2, 14)).intValue());
@@ -112,7 +113,7 @@ public class PersistAction implements Action {
                     }
                 }
 
-                File f = new File(gnomadTmpDir, String.format("%s.txt", UUID.randomUUID().toString()));
+                File f = new File(gnomadTmpDir, String.format("%s", UUID.randomUUID().toString()));
                 fragmentedVCFiles.add(f);
 
                 try (FileOutputStream fos = new FileOutputStream(f);
@@ -306,6 +307,10 @@ public class PersistAction implements Action {
                     serializationFile.delete();
 
                 }
+
+                UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
+                callable.setNote(String.format("Persisted latest GnomAD: %s", version));
+                Executors.newSingleThreadExecutor().submit(callable).get();
 
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);

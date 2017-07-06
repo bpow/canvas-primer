@@ -151,7 +151,8 @@ public class AddDiagnosticGeneListAction implements Action {
                 logger.info(newDiagnosticGeneGroupVersion.toString());
 
                 UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
-                callable.setNote(String.format("%s%n%s%n", "Adding/Updating Diagnostic Gene List:", dx.toString()));
+                callable.setNote(String.format("Adding/Updating Diagnostic Gene List: %s", dx.toString()));
+                Executors.newSingleThreadExecutor().submit(callable).get();
 
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);

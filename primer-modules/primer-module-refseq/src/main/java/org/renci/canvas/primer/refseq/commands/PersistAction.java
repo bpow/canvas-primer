@@ -270,7 +270,8 @@ public class PersistAction implements Action {
                 }
 
                 UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
-                callable.setNote(String.format("%s%n%s%n", "Pulling latest RefSeq:", refseqVersion));
+                callable.setNote(String.format("Pulling latest RefSeq: %s", refseqVersion));
+                Executors.newSingleThreadExecutor().submit(callable).get();
 
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);

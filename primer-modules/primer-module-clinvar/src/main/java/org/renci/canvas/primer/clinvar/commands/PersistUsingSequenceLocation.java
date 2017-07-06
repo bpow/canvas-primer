@@ -502,7 +502,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             }
 
             UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
-            callable.setNote(String.format("%s%n%s%n", "Pulling latest ClinVar:", clinvarVersion.toString()));
+            callable.setNote(String.format("Persisted latest ClinVar: %s", clinvarVersion.getId()));
+            Executors.newSingleThreadExecutor().submit(callable).get();
 
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
