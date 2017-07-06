@@ -62,6 +62,7 @@ import org.renci.canvas.dao.refseq.model.TranscriptMapsExonsPK;
 import org.renci.canvas.dao.refseq.model.TranscriptRefSeqVersion;
 import org.renci.canvas.dao.refseq.model.TranscriptRefSeqVersionPK;
 import org.renci.canvas.primer.commons.FTPFactory;
+import org.renci.canvas.primer.commons.UpdateDiagnosticResultVersionCallable;
 import org.renci.canvas.primer.dao.PrimerDAOBeanService;
 import org.renci.gbff.GBFFFilter;
 import org.renci.gbff.GBFFManager;
@@ -267,6 +268,10 @@ public class PersistAction implements Action {
                     serializedSequenceFile.delete();
 
                 }
+
+                UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
+                callable.setNote(String.format("%s%n%s%n", "Pulling latest RefSeq:", refseqVersion));
+
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
