@@ -17,6 +17,7 @@ import org.renci.canvas.dao.clinbin.model.DX;
 import org.renci.canvas.dao.clinbin.model.DiagnosticGene;
 import org.renci.canvas.dao.clinbin.model.DiagnosticGeneGroupVersion;
 import org.renci.canvas.dao.clinbin.model.DiagnosticGeneGroupVersionPK;
+import org.renci.canvas.primer.commons.UpdateDiagnosticResultVersionCallable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,6 +149,9 @@ public class AddDiagnosticGeneListAction implements Action {
                 newDiagnosticGeneGroupVersion
                         .setId(canvasDAOBeanService.getDiagnosticGeneGroupVersionDAO().save(newDiagnosticGeneGroupVersion));
                 logger.info(newDiagnosticGeneGroupVersion.toString());
+
+                UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
+                callable.setNote(String.format("%s%n%s%n", "Adding/Updating Diagnostic Gene List:", dx.toString()));
 
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
