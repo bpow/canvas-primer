@@ -91,7 +91,7 @@ public class GenerateGeneListSupportFilesAction implements Action {
                 logger.info(diagnosticResultVersion.toString());
 
                 List<DiagnosticGene> diagnosticGenes = canvasDAOBeanService.getDiagnosticGeneDAO()
-                        .findByGroupVersionAndExternalNamespaceAndVersion(diagnosticResultVersion.getDbinGroupVersion(), "refseq",
+                        .findByGroupVersionAndExternalNamespaceAndVersion(diagnosticResultVersion.getDiagnosticBinGroupVersion(), "refseq",
                                 diagnosticResultVersion.getRefseqVersion().toString());
 
                 if (CollectionUtils.isNotEmpty(diagnosticGenes)) {
