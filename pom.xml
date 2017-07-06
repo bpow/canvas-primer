@@ -8,7 +8,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas</groupId>
   <artifactId>primer</artifactId>
-  <version>0.0.16</version>
+  <version>0.0.17-SNAPSHOT</version>
   <packaging>pom</packaging>
   <properties>
     <maven.site.plugin.skip>false</maven.site.plugin.skip>
@@ -35,7 +35,7 @@
     <url>https://github.com/jdr0887/canvas-primer</url>
     <developerConnection>scm:git:git@github.com:jdr0887/canvas-primer.git</developerConnection>
     <connection>scm:git:git@github.com:jdr0887/canvas-primer.git</connection>
-    <tag>primer-0.0.16</tag>
+    <tag>HEAD</tag>
   </scm>
   <dependencyManagement>
     <dependencies>
@@ -72,17 +72,17 @@
       <dependency>
 	<groupId>org.renci.canvas.primer.primer-dao</groupId>
 	<artifactId>primer-dao-api</artifactId>
-      	<version>0.0.16</version>	
+      	<version>0.0.17-SNAPSHOT</version>	
       </dependency>
       <dependency>      
 	<groupId>org.renci.canvas.primer.primer-dao</groupId>
 	<artifactId>primer-dao-jpa</artifactId>
-      	<version>0.0.16</version>		
+      	<version>0.0.17-SNAPSHOT</version>		
       </dependency>
       <dependency>      
 	<groupId>org.renci.canvas.primer</groupId>
 	<artifactId>primer-commons</artifactId>
-      	<version>0.0.16</version>	
+      	<version>0.0.17-SNAPSHOT</version>	
       </dependency>          
       <dependency>
 	<groupId>org.renci.canvas.canvas-dao</groupId>
