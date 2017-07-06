@@ -2,13 +2,13 @@
   <parent>
     <groupId>org.renci.canvas.primer</groupId>
     <artifactId>primer-dao</artifactId>
-    <version>0.0.14</version>
+    <version>0.0.15-SNAPSHOT</version>
   </parent>
   <name>CANVAS :: Primer :: DAO :: JPA</name>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas.primer.primer-dao</groupId>
   <artifactId>primer-dao-jpa</artifactId>
-  <version>0.0.14</version>
+  <version>0.0.15-SNAPSHOT</version>
   <packaging>bundle</packaging>
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
