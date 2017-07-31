@@ -40,6 +40,7 @@
     <bundle>mvn:org.renci.gff/gff3-parser/${gff3.parser.version}</bundle>
     <bundle>mvn:org.renci.hgvs/hgvs-parser/${hgvs.parser.version}</bundle>    
     <bundle>mvn:org.renci.clinvar/clinvar-public/${clinvar.version}</bundle>
+    <bundle>mvn:org.renci.dbsnp/dbsnp-schema/${dbsnp.version}</bundle>    
     <bundle>mvn:org.renci.gerese4j/gerese4j-core/${gerese4j.version}</bundle>
     <bundle>mvn:org.apache.geronimo.specs/geronimo-annotation_1.0_spec/1.1.1</bundle>
     <bundle>mvn:org.apache.geronimo.specs/geronimo-servlet_2.5_spec/1.2</bundle>
@@ -84,7 +85,8 @@
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-clinvar/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gene-lists/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gnomad/${project.version}</bundle>
-    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-1000genomes/${project.version}</bundle>            
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-onekgenomes/${project.version}</bundle>
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-dbsnp/${project.version}</bundle>                
   </feature>  
   
 </features>
