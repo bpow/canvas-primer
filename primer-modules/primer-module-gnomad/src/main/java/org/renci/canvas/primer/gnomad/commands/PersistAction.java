@@ -70,7 +70,7 @@ public class PersistAction implements Action {
         String version = versionAndFilePair.getLeft();
         File latestFile = versionAndFilePair.getRight();
 
-        Path gnomadPath = Paths.get(System.getProperty("karaf.data"), "GnomAD");
+        Path gnomadPath = Paths.get(System.getProperty("karaf.data"), "gnomad");
         File gnomadDir = gnomadPath.toFile();
         File gnomadTmpDir = new File(gnomadDir, "tmp");
 
@@ -86,6 +86,7 @@ public class PersistAction implements Action {
                 // .sorted((a, b) -> a.getName().compareTo(b.getName())).findFirst().get();
 
                 GenomeRef genomeRef = canvasDAOBeanService.getGenomeRefDAO().findById(2);
+                // GenomeRef genomeRef = canvasDAOBeanService.getGenomeRefDAO().findById(1);
 
                 List<VariantType> allVariantTypes = canvasDAOBeanService.getVariantTypeDAO().findAll();
 
@@ -155,7 +156,6 @@ public class PersistAction implements Action {
                                         LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
                                                 variantContext, altAllele, allVariantTypes);
 
-                                        logger.info(locatedVariant.toString());
                                         List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
                                                 .findByExample(locatedVariant);
                                         if (CollectionUtils.isNotEmpty(foundLocatedVariants)) {
@@ -165,6 +165,7 @@ public class PersistAction implements Action {
                                         }
 
                                         final LocatedVariant finalLocatedVariant = locatedVariant;
+                                        logger.info(finalLocatedVariant.toString());
 
                                         int alleleIndex = variantContext.getAlleleIndex(altAllele);
                                         logger.debug("alleleIndex: {}", alleleIndex);
@@ -201,6 +202,7 @@ public class PersistAction implements Action {
 
                                                         Integer alleleTotal = StringUtils.isNotEmpty(alleleTotalValue)
                                                                 && !".".equals(alleleTotalValue) ? Integer.valueOf(alleleTotalValue) : 0;
+
                                                         Double alleleFrequency = null;
                                                         Integer alleleCount = null;
                                                         Integer hemizygousCount = null;
@@ -281,14 +283,14 @@ public class PersistAction implements Action {
                                                         canvasDAOBeanService.getGnomADVariantFrequencyDAO().save(variantFrequency);
 
                                                         logger.debug(variantFrequency.toString());
-                                                    } catch (NumberFormatException | CANVASDAOException e) {
+                                                    } catch (Exception e) {
                                                         logger.error(e.getMessage(), e);
                                                     }
 
                                                 });
 
                                     }
-                                } catch (CANVASDAOException e) {
+                                } catch (Exception e) {
                                     logger.error(e.getMessage(), e);
                                 }
 
@@ -297,7 +299,7 @@ public class PersistAction implements Action {
                         }
 
                         es.shutdown();
-                        if (es.awaitTermination(2L, TimeUnit.HOURS)) {
+                        if (!es.awaitTermination(1L, TimeUnit.DAYS)) {
                             es.shutdownNow();
                         }
 
