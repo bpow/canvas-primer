@@ -304,6 +304,7 @@ public class GenerateGeneListSupportFilesAction implements Action {
             }
 
         });
+        logger.info("DONE");
 
         return null;
     }
