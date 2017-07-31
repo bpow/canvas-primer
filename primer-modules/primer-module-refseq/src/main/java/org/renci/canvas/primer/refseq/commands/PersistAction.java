@@ -50,6 +50,7 @@ import org.renci.canvas.dao.refseq.model.CDSTranslationExceptionPK;
 import org.renci.canvas.dao.refseq.model.Feature;
 import org.renci.canvas.dao.refseq.model.FeatureType;
 import org.renci.canvas.dao.refseq.model.GroupingType;
+import org.renci.canvas.dao.refseq.model.LocationType;
 import org.renci.canvas.dao.refseq.model.RefSeqCodingSequence;
 import org.renci.canvas.dao.refseq.model.RefSeqGene;
 import org.renci.canvas.dao.refseq.model.RegionGroup;
@@ -92,7 +93,7 @@ public class PersistAction implements Action {
     private CANVASDAOBeanService canvasDAOBeanService;
 
     @Reference
-    private PrimerDAOBeanService annotationDAOBeanService;
+    private PrimerDAOBeanService primerDAOBeanService;
 
     public PersistAction() {
         super();
