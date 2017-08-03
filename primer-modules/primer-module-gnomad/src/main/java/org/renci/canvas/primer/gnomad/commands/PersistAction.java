@@ -28,7 +28,6 @@ import org.apache.karaf.shell.api.action.Option;
 import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.renci.canvas.dao.CANVASDAOBeanService;
-import org.renci.canvas.dao.CANVASDAOException;
 import org.renci.canvas.dao.commons.LocatedVariantFactory;
 import org.renci.canvas.dao.gnomad.model.GnomADVariantFrequency;
 import org.renci.canvas.dao.gnomad.model.GnomADVariantFrequencyPK;
