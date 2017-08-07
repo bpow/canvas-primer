@@ -50,6 +50,8 @@ public class PersistAction implements Action {
 
     private static final Logger logger = LoggerFactory.getLogger(PersistAction.class);
 
+    private static List<String> popuationList = Arrays.asList("AFR", "AMR", "ASJ", "EAS", "FIN", "NFE", "OTH", "SAS");
+
     @Reference
     private CANVASDAOBeanService canvasDAOBeanService;
 
@@ -138,7 +140,7 @@ public class PersistAction implements Action {
 
                     if (CollectionUtils.isNotEmpty(vcList)) {
 
-                        ExecutorService es = Executors.newFixedThreadPool(3);
+                        ExecutorService es = Executors.newFixedThreadPool(4);
 
                         for (VariantContext variantContext : vcList) {
 
@@ -169,124 +171,119 @@ public class PersistAction implements Action {
                                         int alleleIndex = variantContext.getAlleleIndex(altAllele);
                                         logger.debug("alleleIndex: {}", alleleIndex);
 
-                                        Arrays.asList("AFR", "AMR", "ASJ", "EAS", "FIN", "NFE", "OTH", "SAS").parallelStream()
-                                                .forEach(population -> {
+                                        for (String population : popuationList) {
+                                            try {
 
-                                                    try {
+                                                String alleleFrequencyValue = commonInfo
+                                                        .getAttributeAsString(String.format("AF_%s", population), "");
+                                                String alleleCountValue = commonInfo
+                                                        .getAttributeAsString(String.format("AC_%s", population), "");
+                                                String alleleTotalValue = commonInfo
+                                                        .getAttributeAsString(String.format("AN_%s", population), "");
+                                                String hemizygousCountValue = commonInfo
+                                                        .getAttributeAsString(String.format("Hemi_%s", population), "");
+                                                String homozygousCountValue = commonInfo
+                                                        .getAttributeAsString(String.format("Hom_%s", population), "");
 
-                                                        String alleleFrequencyValue = commonInfo
-                                                                .getAttributeAsString(String.format("AF_%s", population), "");
-                                                        String alleleCountValue = commonInfo
-                                                                .getAttributeAsString(String.format("AC_%s", population), "");
-                                                        String alleleTotalValue = commonInfo
-                                                                .getAttributeAsString(String.format("AN_%s", population), "");
-                                                        String hemizygousCountValue = commonInfo
-                                                                .getAttributeAsString(String.format("Hemi_%s", population), "");
-                                                        String homozygousCountValue = commonInfo
-                                                                .getAttributeAsString(String.format("Hom_%s", population), "");
+                                                GnomADVariantFrequencyPK variantFrequencyPK = new GnomADVariantFrequencyPK(
+                                                        finalLocatedVariant.getId(), version, population);
 
-                                                        GnomADVariantFrequencyPK variantFrequencyPK = new GnomADVariantFrequencyPK(
-                                                                finalLocatedVariant.getId(), version, population);
+                                                GnomADVariantFrequency foundGnomADVariantFrequency = canvasDAOBeanService
+                                                        .getGnomADVariantFrequencyDAO().findById(variantFrequencyPK);
 
-                                                        GnomADVariantFrequency foundGnomADVariantFrequency = canvasDAOBeanService
-                                                                .getGnomADVariantFrequencyDAO().findById(variantFrequencyPK);
+                                                GnomADVariantFrequency variantFrequency = null;
+                                                if (foundGnomADVariantFrequency == null) {
+                                                    variantFrequency = new GnomADVariantFrequency(variantFrequencyPK);
+                                                } else {
+                                                    variantFrequency = foundGnomADVariantFrequency;
+                                                }
+                                                variantFrequency.setLocatedVariant(finalLocatedVariant);
 
-                                                        GnomADVariantFrequency variantFrequency = null;
-                                                        if (foundGnomADVariantFrequency == null) {
-                                                            variantFrequency = new GnomADVariantFrequency(variantFrequencyPK);
-                                                        } else {
-                                                            variantFrequency = foundGnomADVariantFrequency;
-                                                        }
-                                                        variantFrequency.setLocatedVariant(finalLocatedVariant);
+                                                Integer alleleTotal = StringUtils.isNotEmpty(alleleTotalValue)
+                                                        && !".".equals(alleleTotalValue) ? Integer.valueOf(alleleTotalValue) : 0;
 
-                                                        Integer alleleTotal = StringUtils.isNotEmpty(alleleTotalValue)
-                                                                && !".".equals(alleleTotalValue) ? Integer.valueOf(alleleTotalValue) : 0;
+                                                Double alleleFrequency = null;
+                                                Integer alleleCount = null;
+                                                Integer hemizygousCount = null;
+                                                Integer homozygousCount = null;
 
-                                                        Double alleleFrequency = null;
-                                                        Integer alleleCount = null;
-                                                        Integer hemizygousCount = null;
-                                                        Integer homozygousCount = null;
+                                                if (alleleIndex > 0) {
 
-                                                        if (alleleIndex > 0) {
-
-                                                            List<String> alleleFrequencyValues = commonInfo
-                                                                    .getAttributeAsStringList(String.format("AF_%s", population), "");
-                                                            if (CollectionUtils.isNotEmpty(alleleFrequencyValues)) {
-                                                                alleleFrequencyValue = alleleFrequencyValues.get(alleleIndex - 1);
-                                                                alleleFrequency = StringUtils.isNotEmpty(alleleFrequencyValue)
-                                                                        && !".".equals(alleleFrequencyValue)
-                                                                                ? Double.valueOf(alleleFrequencyValue) : 0D;
-                                                            } else {
-                                                                alleleFrequency = 0D;
-                                                            }
-
-                                                            List<String> alleleCountValues = commonInfo
-                                                                    .getAttributeAsStringList(String.format("AC_%s", population), "");
-                                                            if (CollectionUtils.isNotEmpty(alleleCountValues)) {
-                                                                alleleCountValue = alleleCountValues.get(alleleIndex - 1);
-                                                                alleleCount = StringUtils.isNotEmpty(alleleCountValue)
-                                                                        && !".".equals(alleleCountValue) ? Integer.valueOf(alleleCountValue)
-                                                                                : 0;
-                                                            } else {
-                                                                alleleCount = 0;
-                                                            }
-
-                                                            List<String> hemizygousCountValues = commonInfo
-                                                                    .getAttributeAsStringList(String.format("Hemi_%s", population), "");
-                                                            if (CollectionUtils.isNotEmpty(hemizygousCountValues)) {
-                                                                hemizygousCountValue = hemizygousCountValues.get(alleleIndex - 1);
-                                                                hemizygousCount = StringUtils.isNotEmpty(hemizygousCountValue)
-                                                                        && !".".equals(hemizygousCountValue)
-                                                                                ? Integer.valueOf(hemizygousCountValue) : 0;
-                                                            } else {
-                                                                hemizygousCount = 0;
-                                                            }
-
-                                                            List<String> homozygousCountValues = commonInfo
-                                                                    .getAttributeAsStringList(String.format("Hom_%s", population), "");
-                                                            if (CollectionUtils.isNotEmpty(homozygousCountValues)) {
-                                                                homozygousCountValue = homozygousCountValues.get(alleleIndex - 1);
-                                                                homozygousCount = StringUtils.isNotEmpty(homozygousCountValue)
-                                                                        && !".".equals(homozygousCountValue)
-                                                                                ? Integer.valueOf(homozygousCountValue) : 0;
-                                                            } else {
-                                                                homozygousCount = 0;
-                                                            }
-
-                                                        } else {
-
-                                                            alleleFrequency = StringUtils.isNotEmpty(alleleFrequencyValue)
-                                                                    && !".".equals(alleleFrequencyValue)
-                                                                            ? Double.valueOf(alleleFrequencyValue) : 0D;
-                                                            alleleCount = StringUtils.isNotEmpty(alleleCountValue)
-                                                                    && !".".equals(alleleCountValue) ? Integer.valueOf(alleleCountValue)
-                                                                            : 0;
-                                                            alleleTotal = StringUtils.isNotEmpty(alleleTotalValue)
-                                                                    && !".".equals(alleleTotalValue) ? Integer.valueOf(alleleTotalValue)
-                                                                            : 0;
-                                                            hemizygousCount = StringUtils.isNotEmpty(hemizygousCountValue)
-                                                                    && !".".equals(hemizygousCountValue)
-                                                                            ? Integer.valueOf(hemizygousCountValue) : 0;
-                                                            homozygousCount = StringUtils.isNotEmpty(homozygousCountValue)
-                                                                    && !".".equals(homozygousCountValue)
-                                                                            ? Integer.valueOf(homozygousCountValue) : 0;
-
-                                                        }
-
-                                                        variantFrequency.setAlternateAlleleFrequency(alleleFrequency);
-                                                        variantFrequency.setAlternateAlleleCount(alleleCount);
-                                                        variantFrequency.setTotalAlleleCount(alleleTotal);
-                                                        variantFrequency.setHemizygousCount(hemizygousCount);
-                                                        variantFrequency.setHomozygousCount(homozygousCount);
-
-                                                        canvasDAOBeanService.getGnomADVariantFrequencyDAO().save(variantFrequency);
-
-                                                        logger.debug(variantFrequency.toString());
-                                                    } catch (Exception e) {
-                                                        logger.error(e.getMessage(), e);
+                                                    List<String> alleleFrequencyValues = commonInfo
+                                                            .getAttributeAsStringList(String.format("AF_%s", population), "");
+                                                    if (CollectionUtils.isNotEmpty(alleleFrequencyValues)) {
+                                                        alleleFrequencyValue = alleleFrequencyValues.get(alleleIndex - 1);
+                                                        alleleFrequency = StringUtils.isNotEmpty(alleleFrequencyValue)
+                                                                && !".".equals(alleleFrequencyValue) ? Double.valueOf(alleleFrequencyValue)
+                                                                        : 0D;
+                                                    } else {
+                                                        alleleFrequency = 0D;
                                                     }
 
-                                                });
+                                                    List<String> alleleCountValues = commonInfo
+                                                            .getAttributeAsStringList(String.format("AC_%s", population), "");
+                                                    if (CollectionUtils.isNotEmpty(alleleCountValues)) {
+                                                        alleleCountValue = alleleCountValues.get(alleleIndex - 1);
+                                                        alleleCount = StringUtils.isNotEmpty(alleleCountValue)
+                                                                && !".".equals(alleleCountValue) ? Integer.valueOf(alleleCountValue) : 0;
+                                                    } else {
+                                                        alleleCount = 0;
+                                                    }
+
+                                                    List<String> hemizygousCountValues = commonInfo
+                                                            .getAttributeAsStringList(String.format("Hemi_%s", population), "");
+                                                    if (CollectionUtils.isNotEmpty(hemizygousCountValues)) {
+                                                        hemizygousCountValue = hemizygousCountValues.get(alleleIndex - 1);
+                                                        hemizygousCount = StringUtils.isNotEmpty(hemizygousCountValue)
+                                                                && !".".equals(hemizygousCountValue) ? Integer.valueOf(hemizygousCountValue)
+                                                                        : 0;
+                                                    } else {
+                                                        hemizygousCount = 0;
+                                                    }
+
+                                                    List<String> homozygousCountValues = commonInfo
+                                                            .getAttributeAsStringList(String.format("Hom_%s", population), "");
+                                                    if (CollectionUtils.isNotEmpty(homozygousCountValues)) {
+                                                        homozygousCountValue = homozygousCountValues.get(alleleIndex - 1);
+                                                        homozygousCount = StringUtils.isNotEmpty(homozygousCountValue)
+                                                                && !".".equals(homozygousCountValue) ? Integer.valueOf(homozygousCountValue)
+                                                                        : 0;
+                                                    } else {
+                                                        homozygousCount = 0;
+                                                    }
+
+                                                } else {
+
+                                                    alleleFrequency = StringUtils.isNotEmpty(alleleFrequencyValue)
+                                                            && !".".equals(alleleFrequencyValue) ? Double.valueOf(alleleFrequencyValue)
+                                                                    : 0D;
+                                                    alleleCount = StringUtils.isNotEmpty(alleleCountValue) && !".".equals(alleleCountValue)
+                                                            ? Integer.valueOf(alleleCountValue) : 0;
+                                                    alleleTotal = StringUtils.isNotEmpty(alleleTotalValue) && !".".equals(alleleTotalValue)
+                                                            ? Integer.valueOf(alleleTotalValue) : 0;
+                                                    hemizygousCount = StringUtils.isNotEmpty(hemizygousCountValue)
+                                                            && !".".equals(hemizygousCountValue) ? Integer.valueOf(hemizygousCountValue)
+                                                                    : 0;
+                                                    homozygousCount = StringUtils.isNotEmpty(homozygousCountValue)
+                                                            && !".".equals(homozygousCountValue) ? Integer.valueOf(homozygousCountValue)
+                                                                    : 0;
+
+                                                }
+
+                                                variantFrequency.setAlternateAlleleFrequency(alleleFrequency);
+                                                variantFrequency.setAlternateAlleleCount(alleleCount);
+                                                variantFrequency.setTotalAlleleCount(alleleTotal);
+                                                variantFrequency.setHemizygousCount(hemizygousCount);
+                                                variantFrequency.setHomozygousCount(homozygousCount);
+
+                                                canvasDAOBeanService.getGnomADVariantFrequencyDAO().save(variantFrequency);
+
+                                                logger.debug(variantFrequency.toString());
+                                            } catch (Exception e) {
+                                                logger.error(e.getMessage(), e);
+                                            }
+
+                                        }
 
                                     }
                                 } catch (Exception e) {
