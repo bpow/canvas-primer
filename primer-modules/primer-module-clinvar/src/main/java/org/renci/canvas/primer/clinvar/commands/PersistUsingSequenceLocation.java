@@ -89,6 +89,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             File clinvarXmlFile = FTPFactory.ncbiDownload(clinvarDir, "/pub/clinvar/xml", "ClinVarFullRelease_00-latest.xml.gz");
 
+            if (clinvarXmlFile == null) {
+                logger.error("Problem downloading clinvar");
+                return null;
+            }
+
             ClinVarVersion clinvarVersion = new ClinVarVersion(clinvarXmlFile.getName());
             clinvarVersion.setId(canvasDAOBeanService.getClinVarVersionDAO().save(clinvarVersion));
 
