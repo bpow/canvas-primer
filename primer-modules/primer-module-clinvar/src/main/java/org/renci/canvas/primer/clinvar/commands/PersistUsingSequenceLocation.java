@@ -98,16 +98,15 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             // vardb_berg_38_migration has different name than GeReSe4jBuild.getVersion(), using hardcoded id instead
 
-            // GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion()))
-            // .findFirst().get();
-            GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getId().equals(4)).findFirst().get();
-
             // GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild37.getBuild().getVersion()))
             // .findFirst().get();
             GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getId().equals(2)).findFirst().get();
-
-            List<GenomeRefSeq> all38GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef38.getId());
             List<GenomeRefSeq> all37GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef37.getId());
+
+            // GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion()))
+            // .findFirst().get();
+            GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getId().equals(4)).findFirst().get();
+            List<GenomeRefSeq> all38GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef38.getId());
 
             List<ReferenceAssertionType> rats = new ArrayList<>();
 
@@ -189,7 +188,9 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             logger.info("persisting TraitSets");
             Set<TraitSet> traitSets = new HashSet<>();
-            rats.parallelStream().forEach(a -> traitSets.add(new TraitSet(a.getTraitSet().getID().intValue(), a.getTraitSet().getType())));
+            for (ReferenceAssertionType rat : rats) {
+                traitSets.add(new TraitSet(rat.getTraitSet().getID().intValue(), rat.getTraitSet().getType()));
+            }
 
             ExecutorService es = Executors.newFixedThreadPool(3);
             for (TraitSet traitSet : traitSets) {
@@ -214,8 +215,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             Set<Trait> traits = new HashSet<>();
 
             logger.info("persisting Traits");
-            rats.parallelStream().forEach(a -> {
-                List<TraitType> traitTypeList = a.getTraitSet().getTrait();
+            for (ReferenceAssertionType rat : rats) {
+                List<TraitType> traitTypeList = rat.getTraitSet().getTrait();
                 for (TraitType traitType : traitTypeList) {
                     Optional<SetElementSetType> preferredNameOptional = traitType.getName().stream()
                             .filter(b -> b.getElementValue().getType().equals("Preferred")).findAny();
@@ -224,7 +225,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 preferredNameOptional.get().getElementValue().getValue()));
                     }
                 }
-            });
+            }
 
             es = Executors.newFixedThreadPool(3);
             for (Trait trait : traits) {
