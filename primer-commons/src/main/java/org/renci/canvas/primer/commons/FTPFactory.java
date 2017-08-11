@@ -23,7 +23,7 @@ public class FTPFactory {
     private static final Logger logger = LoggerFactory.getLogger(FTPFactory.class);
 
     public static File download(File outputDir, String host, String path, String name) {
-        logger.info("downloading: {}", String.format("%s:%s/%s", host, path, name));
+        logger.info("downloading: {} to {}", String.format("%s:%s/%s", host, path, name), outputDir.getAbsolutePath());
         File ret = new File(outputDir, name);
         if (ret.exists()) {
             return ret;
@@ -46,14 +46,14 @@ public class FTPFactory {
                 fos.flush();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(), e);
         } finally {
             try {
                 if (ftpClient.isConnected()) {
                     ftpClient.disconnect();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
             }
         }
         return ret;
