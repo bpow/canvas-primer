@@ -34,6 +34,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 import org.renci.canvas.dao.var.model.LocatedVariant;
 import org.renci.canvas.dao.var.model.VariantType;
+import org.renci.canvas.primer.commons.FTPFactory;
 import org.renci.clinvar.MeasureSetType;
 import org.renci.clinvar.MeasureType;
 import org.renci.clinvar.MeasureType.AttributeSet;
@@ -333,6 +334,11 @@ public class Scratch {
             e.printStackTrace();
         }
 
+    }
+
+    @Test
+    public void download() {
+        FTPFactory.ncbiDownload(new File("/tmp"), "/pub/clinvar/xml", "ClinVarFullRelease_00-latest.xml.gz");
     }
 
     @Test
