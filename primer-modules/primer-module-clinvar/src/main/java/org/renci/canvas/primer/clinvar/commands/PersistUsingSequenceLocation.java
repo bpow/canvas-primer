@@ -315,116 +315,92 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                             List<SequenceLocationType> sequenceLocationTypeList = measureType.getSequenceLocation();
 
                             LocatedVariant locatedVariant38 = null;
-                            for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-
-                                if (sequenceLocationType.getStart() != null
-                                        && (sequenceLocationType.getVariantLength() != null
-                                                && sequenceLocationType.getVariantLength().intValue() < 100)
-                                        && "GRCh38".equals(sequenceLocationType.getAssembly())) {
-
-                                    String accession = sequenceLocationType.getAccession();
-
-                                    GenomeRefSeq genomeRefSeq = all38GenomeRefSeqs.parallelStream().filter(a -> a.getId().equals(accession))
-                                            .findFirst().orElse(null);
-
-                                    if (genomeRefSeq != null) {
-
-                                        logger.debug(genomeRefSeq.toString());
-
-                                        locatedVariant38 = processMutation(measure, sequenceLocationType, gerese4jBuild38, genomeRef38,
-                                                genomeRefSeq, allVariantTypes);
-
-                                        if (locatedVariant38 != null) {
-
-                                            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
-                                                    .findByExample(locatedVariant38);
-                                            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                                                locatedVariant38.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant38));
-                                            } else {
-                                                locatedVariant38 = foundLocatedVariants.get(0);
-                                            }
-                                            logger.info(locatedVariant38.toString());
-
-                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion();
-                                            if (explanationType != null && StringUtils.isNotEmpty(explanationType.getValue())) {
-                                                rca.setExplanation(explanationType.getValue());
-                                            }
-                                            rca.setAccession(clinvarAccession.getAcc());
-                                            rca.setVersion(clinvarAccession.getVersion().intValue());
-                                            rca.setCreated(new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()));
-                                            rca.setUpdated(new java.sql.Date(
-                                                    clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()));
-                                            rca.setRecordStatus(rat.getRecordStatus());
-                                            rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
-                                            rca.setAssertionType(rat.getAssertion().getType().value());
-
-                                            rca.setAssertion(assertionRanking);
-                                            rca.setLocatedVariant(locatedVariant38);
-                                            rca.setTraitSet(traitSet);
-
-                                            referenceClinicalAssertions.add(rca);
-
-                                        }
-                                    }
-                                    break;
-                                }
-
-                            }
-
                             LocatedVariant locatedVariant37 = null;
+
                             for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
 
-                                if (sequenceLocationType.getStart() != null
-                                        && (sequenceLocationType.getVariantLength() != null
-                                                && sequenceLocationType.getVariantLength().intValue() < 100)
-                                        && "GRCh37".equals(sequenceLocationType.getAssembly())) {
+                                if (sequenceLocationType.getStart() != null && (sequenceLocationType.getVariantLength() != null
+                                        && sequenceLocationType.getVariantLength().intValue() < 100
+                                        && StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele()))) {
 
                                     String accession = sequenceLocationType.getAccession();
 
-                                    GenomeRefSeq genomeRefSeq = all37GenomeRefSeqs.parallelStream().filter(a -> a.getId().equals(accession))
-                                            .findFirst().orElse(null);
+                                    ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion();
+                                    if (explanationType != null && StringUtils.isNotEmpty(explanationType.getValue())) {
+                                        rca.setExplanation(explanationType.getValue());
+                                    }
+                                    rca.setAccession(clinvarAccession.getAcc());
+                                    rca.setVersion(clinvarAccession.getVersion().intValue());
+                                    rca.setCreated(new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()));
+                                    rca.setUpdated(
+                                            new java.sql.Date(clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()));
+                                    rca.setRecordStatus(rat.getRecordStatus());
+                                    rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
+                                    rca.setAssertionType(rat.getAssertion().getType().value());
+                                    rca.setAssertion(assertionRanking);
+                                    rca.setTraitSet(traitSet);
 
-                                    if (genomeRefSeq != null) {
+                                    if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
 
-                                        logger.debug(genomeRefSeq.toString());
+                                        GenomeRefSeq genomeRefSeq = all38GenomeRefSeqs.stream().filter(a -> a.getId().equals(accession))
+                                                .findFirst().orElse(null);
 
-                                        locatedVariant37 = processMutation(measure, sequenceLocationType, gerese4jBuild37, genomeRef37,
-                                                genomeRefSeq, allVariantTypes);
-                                        if (locatedVariant37 != null) {
+                                        if (genomeRefSeq != null) {
+                                            logger.debug(genomeRefSeq.toString());
 
-                                            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
-                                                    .findByExample(locatedVariant37);
-                                            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                                                locatedVariant37.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant37));
-                                            } else {
-                                                locatedVariant37 = foundLocatedVariants.get(0);
+                                            locatedVariant38 = processMutation(measure, sequenceLocationType, gerese4jBuild38, genomeRef38,
+                                                    genomeRefSeq, allVariantTypes);
+
+                                            if (locatedVariant38 != null) {
+
+                                                List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
+                                                        .findByExample(locatedVariant38);
+                                                if (CollectionUtils.isEmpty(foundLocatedVariants)) {
+                                                    locatedVariant38
+                                                            .setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant38));
+                                                } else {
+                                                    locatedVariant38 = foundLocatedVariants.get(0);
+                                                }
+                                                logger.info(locatedVariant38.toString());
+
+                                                rca.setLocatedVariant(locatedVariant38);
+
+                                                referenceClinicalAssertions.add(rca);
+
                                             }
-                                            logger.info(locatedVariant37.toString());
+                                        }
+                                    }
 
-                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion();
-                                            if (explanationType != null && StringUtils.isNotEmpty(explanationType.getValue())) {
-                                                rca.setExplanation(explanationType.getValue());
+                                    if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
+
+                                        GenomeRefSeq genomeRefSeq = all37GenomeRefSeqs.stream().filter(a -> a.getId().equals(accession))
+                                                .findFirst().orElse(null);
+
+                                        if (genomeRefSeq != null) {
+                                            logger.debug(genomeRefSeq.toString());
+
+                                            locatedVariant37 = processMutation(measure, sequenceLocationType, gerese4jBuild37, genomeRef37,
+                                                    genomeRefSeq, allVariantTypes);
+                                            if (locatedVariant37 != null) {
+
+                                                List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
+                                                        .findByExample(locatedVariant37);
+                                                if (CollectionUtils.isEmpty(foundLocatedVariants)) {
+                                                    locatedVariant37
+                                                            .setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant37));
+                                                } else {
+                                                    locatedVariant37 = foundLocatedVariants.get(0);
+                                                }
+                                                logger.info(locatedVariant37.toString());
+                                                rca.setLocatedVariant(locatedVariant37);
+                                                referenceClinicalAssertions.add(rca);
+
                                             }
-                                            rca.setAccession(clinvarAccession.getAcc());
-                                            rca.setVersion(clinvarAccession.getVersion().intValue());
-                                            rca.setCreated(new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()));
-                                            rca.setUpdated(new java.sql.Date(
-                                                    clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()));
-                                            rca.setRecordStatus(rat.getRecordStatus());
-                                            rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
-                                            rca.setAssertionType(rat.getAssertion().getType().value());
-
-                                            rca.setAssertion(assertionRanking);
-                                            rca.setLocatedVariant(locatedVariant37);
-                                            rca.setTraitSet(traitSet);
-
-                                            referenceClinicalAssertions.add(rca);
 
                                         }
 
                                     }
 
-                                    break;
                                 }
 
                             }
