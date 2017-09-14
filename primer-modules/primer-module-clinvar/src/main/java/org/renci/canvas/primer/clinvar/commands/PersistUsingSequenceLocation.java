@@ -43,6 +43,7 @@ import org.renci.canvas.dao.var.model.VariantType;
 import org.renci.canvas.primer.commons.FTPFactory;
 import org.renci.canvas.primer.commons.UpdateDiagnosticResultVersionCallable;
 import org.renci.clinvar.ClinicalSignificanceType;
+import org.renci.clinvar.CommentType;
 import org.renci.clinvar.MeasureSetType;
 import org.renci.clinvar.MeasureType;
 import org.renci.clinvar.MeasureType.AttributeSet;
@@ -292,6 +293,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                     MeasureSetType measureSetType = rat.getMeasureSet();
 
                     ClinicalSignificanceType clinicalSignificanceType = rat.getClinicalSignificance();
+                    CommentType explanationType = clinicalSignificanceType.getExplanation();
+
                     ClinVarAccession clinvarAccession = rat.getClinVarAccession();
 
                     AssertionRanking assertionRanking = allAssertionRankings.stream()
@@ -342,13 +345,18 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             }
                                             logger.info(locatedVariant38.toString());
 
-                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion(clinvarAccession.getAcc(),
-                                                    clinvarAccession.getVersion().intValue(),
-                                                    new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()),
-                                                    new java.sql.Date(
-                                                            clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()),
-                                                    rat.getRecordStatus(), clinicalSignificanceType.getReviewStatus().value(),
-                                                    rat.getAssertion().getType().value());
+                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion();
+                                            if (explanationType != null && StringUtils.isNotEmpty(explanationType.getValue())) {
+                                                rca.setExplanation(explanationType.getValue());
+                                            }
+                                            rca.setAccession(clinvarAccession.getAcc());
+                                            rca.setVersion(clinvarAccession.getVersion().intValue());
+                                            rca.setCreated(new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()));
+                                            rca.setUpdated(new java.sql.Date(
+                                                    clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()));
+                                            rca.setRecordStatus(rat.getRecordStatus());
+                                            rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
+                                            rca.setAssertionType(rat.getAssertion().getType().value());
 
                                             rca.setAssertion(assertionRanking);
                                             rca.setLocatedVariant(locatedVariant38);
@@ -393,13 +401,18 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             }
                                             logger.info(locatedVariant37.toString());
 
-                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion(clinvarAccession.getAcc(),
-                                                    clinvarAccession.getVersion().intValue(),
-                                                    new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()),
-                                                    new java.sql.Date(
-                                                            clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()),
-                                                    rat.getRecordStatus(), clinicalSignificanceType.getReviewStatus().value(),
-                                                    rat.getAssertion().getType().value());
+                                            ReferenceClinicalAssertion rca = new ReferenceClinicalAssertion();
+                                            if (explanationType != null && StringUtils.isNotEmpty(explanationType.getValue())) {
+                                                rca.setExplanation(explanationType.getValue());
+                                            }
+                                            rca.setAccession(clinvarAccession.getAcc());
+                                            rca.setVersion(clinvarAccession.getVersion().intValue());
+                                            rca.setCreated(new java.sql.Date(rat.getDateCreated().toGregorianCalendar().getTimeInMillis()));
+                                            rca.setUpdated(new java.sql.Date(
+                                                    clinvarAccession.getDateUpdated().toGregorianCalendar().getTimeInMillis()));
+                                            rca.setRecordStatus(rat.getRecordStatus());
+                                            rca.setAssertionStatus(clinicalSignificanceType.getReviewStatus().value());
+                                            rca.setAssertionType(rat.getAssertion().getType().value());
 
                                             rca.setAssertion(assertionRanking);
                                             rca.setLocatedVariant(locatedVariant37);
