@@ -2,13 +2,13 @@
   <parent>
     <groupId>org.renci.canvas.primer</groupId>
     <artifactId>primer-modules</artifactId>
-    <version>0.0.24-SNAPSHOT</version>
+    <version>0.0.24</version>
   </parent>
   <name>CANVAS :: Primer :: Modules :: GeneNames</name>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas.primer.primer-modules</groupId>
   <artifactId>primer-module-genenames</artifactId>
-  <version>0.0.24-SNAPSHOT</version>
+  <version>0.0.24</version>
   <packaging>bundle</packaging>
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
