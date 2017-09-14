@@ -343,9 +343,7 @@ public class Scratch {
 
     @Test
     public void scratch() throws Exception {
-        try (FileInputStream fis = new FileInputStream(new File(
-                "/home/jdr0887/workspace/renci/canvas/primer/primer/primer-server/target/primer-server-0.0.5-SNAPSHOT/data/ClinVar",
-                "ClinVarFullRelease_00-latest.xml.gz"));
+        try (FileInputStream fis = new FileInputStream(new File("/home/jdr0887/Downloads", "ClinVarFullRelease_00-latest.xml.gz"));
                 GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 16)).intValue())) {
 
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
@@ -382,16 +380,9 @@ public class Scratch {
                                     .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
                                     .collect(Collectors.toList());
 
-                            if (CollectionUtils.isEmpty(filters)) {
-                                continue;
-                            }
-
-                            filters = measure.getAttributeSet().stream()
-                                    .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level")
-                                            && a.getAttribute().getValue().contains("?"))
-                                    .collect(Collectors.toList());
-                            // filter on HGVS expressions that can't be explicitly resolved regardless of type
-                            if (CollectionUtils.isNotEmpty(filters)) {
+                            if (CollectionUtils.isEmpty(filters)
+                                    || (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(filters.stream()
+                                            .filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList())))) {
                                 continue;
                             }
 
@@ -399,8 +390,16 @@ public class Scratch {
 
                             rats.add(rat);
 
-                            // List<SequenceLocationType> sequenceLocationTypeList = measure.getSequenceLocation();
-                            //
+                            List<SequenceLocationType> sequenceLocationTypeList = measure.getSequenceLocation();
+
+                            for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
+                                if (measureType.equals("Insertion")) {
+                                    if (StringUtils.isEmpty(sequenceLocationType.getAlternateAllele())) {
+                                        System.out.println("here");
+                                    }
+                                }
+                            }
+
                             // for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
                             // // filtering conditions
                             // if (sequenceLocationType.getStart() == null) {
