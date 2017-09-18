@@ -2,7 +2,7 @@
   <parent>
     <groupId>org.renci.canvas</groupId>
     <artifactId>canvas</artifactId>
-    <version>0.0.20</version>    
+    <version>0.0.21</version>    
   </parent>
   <name>CANVAS :: Primer</name>
   <modelVersion>4.0.0</modelVersion>
@@ -12,11 +12,11 @@
   <packaging>pom</packaging>
   <properties>
     <maven.site.plugin.skip>false</maven.site.plugin.skip>
-    <renci.canvas.dao.version>0.1.1</renci.canvas.dao.version>
+    <renci.canvas.dao.version>0.1.3</renci.canvas.dao.version>
     <biojava.version>4.2.7</biojava.version>
     <htsjdk.version>2.8.1</htsjdk.version>
     <gbff.parser.version>0.0.30</gbff.parser.version>
-    <clinvar.version>1.47</clinvar.version>
+    <clinvar.version>1.49</clinvar.version>
     <dbsnp.version>3.4</dbsnp.version>    
     <gff3.parser.version>0.0.9</gff3.parser.version>
     <hgvs.parser.version>0.0.6</hgvs.parser.version>        
