@@ -36,6 +36,7 @@ import org.renci.canvas.dao.var.model.LocatedVariant;
 import org.renci.canvas.dao.var.model.VariantType;
 import org.renci.canvas.primer.commons.FTPFactory;
 import org.renci.clinvar.MeasureSetType;
+import org.renci.clinvar.MeasureTraitType;
 import org.renci.clinvar.MeasureType;
 import org.renci.clinvar.MeasureType.AttributeSet;
 import org.renci.clinvar.PublicSetType;
@@ -133,8 +134,7 @@ public class Scratch {
                                 .collect(Collectors.toList());
                         if (CollectionUtils.isNotEmpty(attributeSet)) {
                             for (AttributeSet a : attributeSet) {
-                                bw.write(String.format("integerValue = %s, value = %s",
-                                        a.getAttribute().getIntegerValue() == null ? "null" : a.getAttribute().getIntegerValue(),
+                                bw.write(String.format("integerValue = %s, value = %s", a.getAttribute().getIntegerValue(),
                                         a.getAttribute().getValue()));
                                 bw.newLine();
                                 bw.flush();
@@ -173,14 +173,13 @@ public class Scratch {
                     for (MeasureType measure : measures) {
                         List<AttributeSet> attributeSet = measure.getAttributeSet().stream()
                                 .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level")
-                                        && StringUtils.isNotEmpty(a.getAttribute().getValue()) && a.getAttribute().getIntegerValue() != null
+                                        && StringUtils.isNotEmpty(a.getAttribute().getValue())
                                         && a.getAttribute().getValue().startsWith("NC_") && a.getAttribute().getIntegerValue() != 36
                                         && a.getAttribute().getValue().contains("?"))
                                 .collect(Collectors.toList());
                         if (CollectionUtils.isNotEmpty(attributeSet)) {
                             for (AttributeSet a : attributeSet) {
-                                bw.write(String.format("integerValue = %s, value = %s",
-                                        a.getAttribute().getIntegerValue() == null ? "null" : a.getAttribute().getIntegerValue(),
+                                bw.write(String.format("integerValue = %s, value = %s", a.getAttribute().getIntegerValue(),
                                         a.getAttribute().getValue()));
                                 bw.newLine();
                                 bw.flush();
@@ -352,18 +351,26 @@ public class Scratch {
             JAXBContext jc = JAXBContext.newInstance(ReleaseType.class, ReferenceAssertionType.class);
             Unmarshaller unmarshaller = jc.createUnmarshaller();
 
-            QName qName = new QName("ReferenceClinVarAssertion");
+            QName clinvarSetQName = new QName("ClinVarSet");
 
-            // ReleaseType releaseType = unmarshaller.unmarshal(new PartialXmlEventReader(reader, qName), ReleaseType.class).getValue();
-
-            List<ReferenceAssertionType> rats = new ArrayList<>();
+            List<PublicSetType> pstList = new ArrayList<>();
 
             XMLEvent xmlEvent = null;
             while ((xmlEvent = reader.peek()) != null) {
 
-                if (xmlEvent.isStartElement() && ((StartElement) xmlEvent).getName().equals(qName)) {
+                if (xmlEvent.isStartElement() && ((StartElement) xmlEvent).getName().equals(clinvarSetQName)) {
 
-                    ReferenceAssertionType rat = unmarshaller.unmarshal(reader, ReferenceAssertionType.class).getValue();
+                    PublicSetType pst = unmarshaller.unmarshal(reader, PublicSetType.class).getValue();
+                    ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
+
+                    List<MeasureTraitType> measureTraitTypeList = pst.getClinVarAssertion();
+
+                    for (MeasureTraitType mtt : measureTraitTypeList) {
+                        if (mtt.getClinicalSignificance().getDescription().size() > 1) {
+                            System.out.println("asdfadsfasdf");
+                        }
+                    }
+
                     MeasureSetType measureSetType = rat.getMeasureSet();
 
                     if (measureSetType != null && "Variant".equals(measureSetType.getType())) {
@@ -374,9 +381,9 @@ public class Scratch {
                             continue;
                         }
 
-                        for (MeasureType measure : measures) {
+                        for (MeasureType measureType : measures) {
 
-                            List<AttributeSet> filters = measure.getAttributeSet().stream()
+                            List<AttributeSet> filters = measureType.getAttributeSet().stream()
                                     .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
                                     .collect(Collectors.toList());
 
@@ -386,32 +393,21 @@ public class Scratch {
                                 continue;
                             }
 
-                            String measureType = measure.getType();
+                            List<SequenceLocationType> sequenceLocationTypeList = measureType.getSequenceLocation();
 
-                            rats.add(rat);
-
-                            List<SequenceLocationType> sequenceLocationTypeList = measure.getSequenceLocation();
-
+                            boolean okToAdd = false;
                             for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-                                if (measureType.equals("Insertion")) {
-                                    if (StringUtils.isEmpty(sequenceLocationType.getAlternateAllele())) {
-                                        System.out.println("here");
-                                    }
+                                if (sequenceLocationType.getStart() != null && (sequenceLocationType.getVariantLength() != null
+                                        && sequenceLocationType.getVariantLength().intValue() < 100
+                                        && StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele()))) {
+                                    okToAdd = true;
                                 }
                             }
 
-                            // for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-                            // // filtering conditions
-                            // if (sequenceLocationType.getStart() == null) {
-                            // continue;
-                            // }
-                            //
-                            // if (sequenceLocationType.getVariantLength() == null || (sequenceLocationType.getVariantLength() != null
-                            // && sequenceLocationType.getVariantLength().intValue() > 100)) {
-                            // continue;
-                            // }
-                            // System.out.println(sequenceLocationType.getAccession());
-                            // }
+                            if (okToAdd) {
+                                pstList.add(pst);
+                            }
+
                         }
 
                     }
@@ -419,7 +415,7 @@ public class Scratch {
                     reader.next();
                 }
             }
-            System.out.println(rats.size());
+            System.out.println(pstList.size());
 
         } catch (IOException e) {
             e.printStackTrace();
