@@ -157,6 +157,11 @@ public class PersistAction implements Action {
                                         LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
                                                 variantContext, altAllele, allVariantTypes);
 
+                                        if (locatedVariant.getVariantType().getId().equals("snp")
+                                                || locatedVariant.getVariantType().getId().equals("ins")) {
+                                            continue;
+                                        }
+
                                         List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
                                                 .findByExample(locatedVariant);
                                         if (CollectionUtils.isNotEmpty(foundLocatedVariants)) {
@@ -164,9 +169,7 @@ public class PersistAction implements Action {
                                         } else {
                                             locatedVariant.setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
                                         }
-
-                                        final LocatedVariant finalLocatedVariant = locatedVariant;
-                                        logger.info(finalLocatedVariant.toString());
+                                        logger.info(locatedVariant.toString());
 
                                         int alleleIndex = variantContext.getAlleleIndex(altAllele);
                                         logger.debug("alleleIndex: {}", alleleIndex);
@@ -186,7 +189,7 @@ public class PersistAction implements Action {
                                                         .getAttributeAsString(String.format("Hom_%s", population), "");
 
                                                 GnomADVariantFrequencyPK variantFrequencyPK = new GnomADVariantFrequencyPK(
-                                                        finalLocatedVariant.getId(), version, population);
+                                                        locatedVariant.getId(), version, population);
 
                                                 GnomADVariantFrequency foundGnomADVariantFrequency = canvasDAOBeanService
                                                         .getGnomADVariantFrequencyDAO().findById(variantFrequencyPK);
@@ -197,7 +200,7 @@ public class PersistAction implements Action {
                                                 } else {
                                                     variantFrequency = foundGnomADVariantFrequency;
                                                 }
-                                                variantFrequency.setLocatedVariant(finalLocatedVariant);
+                                                variantFrequency.setLocatedVariant(locatedVariant);
 
                                                 Integer alleleTotal = StringUtils.isNotEmpty(alleleTotalValue)
                                                         && !".".equals(alleleTotalValue) ? Integer.valueOf(alleleTotalValue) : 0;
