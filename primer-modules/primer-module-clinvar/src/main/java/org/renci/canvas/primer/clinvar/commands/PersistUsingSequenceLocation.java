@@ -114,14 +114,14 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             // vardb_berg_38_migration has different name than GeReSe4jBuild.getVersion(), using hardcoded id instead
 
-            GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild37.getBuild().getVersion()))
-                    .findFirst().get();
-            // GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getId().equals(2)).findFirst().get();
+            // GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild37.getBuild().getVersion()))
+            // .findFirst().get();
+            GenomeRef genomeRef37 = allGenomeRefs.stream().filter(a -> a.getId().equals(2)).findFirst().get();
             List<GenomeRefSeq> all37GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef37.getId());
 
-            GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion()))
-                    .findFirst().get();
-            // GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getId().equals(4)).findFirst().get();
+            // GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getName().equals(gerese4jBuild38.getBuild().getVersion()))
+            // .findFirst().get();
+            GenomeRef genomeRef38 = allGenomeRefs.stream().filter(a -> a.getId().equals(4)).findFirst().get();
             List<GenomeRefSeq> all38GenomeRefSeqs = canvasDAOBeanService.getGenomeRefSeqDAO().findByGenomeRefId(genomeRef38.getId());
 
             List<PublicSetType> pstList = new ArrayList<>();
