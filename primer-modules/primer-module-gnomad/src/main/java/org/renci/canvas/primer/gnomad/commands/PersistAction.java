@@ -158,7 +158,8 @@ public class PersistAction implements Action {
                                                 variantContext, altAllele, allVariantTypes);
 
                                         if (locatedVariant.getVariantType().getId().equals("snp")
-                                                || locatedVariant.getVariantType().getId().equals("ins")) {
+                                                && locatedVariant.getVariantType().getId().equals("sub")
+                                                || locatedVariant.getVariantType().getId().equals("del")) {
                                             continue;
                                         }
 
