@@ -104,5 +104,6 @@
     <module>primer-module-omim</module>
     <module>primer-module-refseq</module>
     <module>primer-module-onekgenomes</module>
+    <module>primer-module-variants</module>
   </modules>
 </project>
