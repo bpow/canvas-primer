@@ -86,7 +86,8 @@
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gene-lists/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-gnomad/${project.version}</bundle>
     <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-onekgenomes/${project.version}</bundle>
-    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-dbsnp/${project.version}</bundle>                
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-dbsnp/${project.version}</bundle>
+    <bundle>mvn:org.renci.canvas.primer.primer-modules/primer-module-variants/${project.version}</bundle>                    
   </feature>  
   
 </features>
