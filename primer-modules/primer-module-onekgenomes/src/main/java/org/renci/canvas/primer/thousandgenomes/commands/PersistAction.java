@@ -87,8 +87,9 @@ public class PersistAction implements Action {
 
                             for (Allele altAllele : variantContext.getAlternateAlleles()) {
 
-                                LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, variantContext,
-                                        altAllele, allVariantTypes);
+                                LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
+                                        variantContext.getStart(), variantContext.getReference().getDisplayString(),
+                                        altAllele.getDisplayString(), allVariantTypes);
 
                                 logger.info(locatedVariant.toString());
 

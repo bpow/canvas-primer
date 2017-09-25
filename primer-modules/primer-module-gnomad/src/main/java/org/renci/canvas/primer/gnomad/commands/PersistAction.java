@@ -155,11 +155,10 @@ public class PersistAction implements Action {
                                     for (Allele altAllele : variantContext.getAlternateAlleles()) {
 
                                         LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
-                                                variantContext, altAllele, allVariantTypes);
+                                                variantContext.getStart(), variantContext.getReference().getDisplayString(),
+                                                altAllele.getDisplayString(), allVariantTypes);
 
-                                        if (locatedVariant.getVariantType().getId().equals("snp")
-                                                || locatedVariant.getVariantType().getId().equals("sub")
-                                                || locatedVariant.getVariantType().getId().equals("del")) {
+                                        if (locatedVariant.getVariantType().getId().equals("snp")) {
                                             continue;
                                         }
 

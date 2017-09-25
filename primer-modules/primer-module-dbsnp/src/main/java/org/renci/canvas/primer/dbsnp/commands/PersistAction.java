@@ -32,7 +32,6 @@ import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.renci.canvas.dao.CANVASDAOBeanService;
 import org.renci.canvas.dao.commons.LocatedVariantFactory;
-import org.renci.canvas.dao.dbsnp.model.SNP;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.CanonicalAllele;
@@ -159,7 +158,8 @@ public class PersistAction implements Action {
                                         for (Allele altAllele : variantContext.getAlternateAlleles()) {
 
                                             LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef38, genomeRefSeq,
-                                                    variantContext, altAllele, allVariantTypes);
+                                                    variantContext.getStart(), variantContext.getReference().getDisplayString(),
+                                                    altAllele.getDisplayString(), allVariantTypes);
 
                                             List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
                                                     .findByExample(locatedVariant);
