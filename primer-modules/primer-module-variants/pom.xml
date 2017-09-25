@@ -2,13 +2,13 @@
   <parent>
     <groupId>org.renci.canvas.primer</groupId>
     <artifactId>primer-modules</artifactId>
-    <version>0.0.29</version>
+    <version>0.0.30-SNAPSHOT</version>
   </parent>
   <name>CANVAS :: Primer :: Modules :: Variants</name>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas.primer.primer-modules</groupId>
   <artifactId>primer-module-variants</artifactId>
-  <version>0.0.29</version>
+  <version>0.0.30-SNAPSHOT</version>
   <packaging>bundle</packaging>
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
