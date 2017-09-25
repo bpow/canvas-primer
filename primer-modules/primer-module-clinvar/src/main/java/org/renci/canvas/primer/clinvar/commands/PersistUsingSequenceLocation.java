@@ -644,9 +644,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()), true);
                     }
 
-                    locatedVariant = LocatedVariantFactory.createDeletion(genomeRef, genomeRefSeq,
-                            allVariantTypes.stream().filter(a -> a.getId().equals("del")).findAny().get(), refBase,
-                            sequenceLocationType.getAlternateAllele(), sequenceLocationType.getStart().intValue());
+                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                            refBase, sequenceLocationType.getAlternateAllele(), allVariantTypes);
 
                     break;
                 case "Insertion":
@@ -661,9 +660,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                     }
 
                     if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())) {
-                        locatedVariant = LocatedVariantFactory.createInsertion(genomeRef, genomeRefSeq,
-                                allVariantTypes.stream().filter(a -> a.getId().equals("ins")).findAny().get(), refBase,
-                                sequenceLocationType.getAlternateAllele(), sequenceLocationType.getStart().intValue());
+                        locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                                refBase, sequenceLocationType.getAlternateAllele(), allVariantTypes);
                     }
 
                     break;
@@ -672,9 +670,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                     refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(), true);
 
                     if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())) {
-                        locatedVariant = LocatedVariantFactory.createSNP(genomeRef, genomeRefSeq,
-                                allVariantTypes.stream().filter(a -> a.getId().equals("snp")).findAny().get(), refBase,
-                                sequenceLocationType.getAlternateAllele(), sequenceLocationType.getStart().intValue());
+                        locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                                refBase, sequenceLocationType.getAlternateAllele(), allVariantTypes);
                     }
 
                     break;
