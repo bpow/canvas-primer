@@ -1,1 +1,2 @@
-org.renci.canvas.primer.refseq.commands.PersistAction
+org.renci.canvas.primer.refseq.commands.FindBadLocatedVariantsAction
+org.renci.canvas.primer.refseq.commands.FindLocatedVariantsNotInReferenceAction
