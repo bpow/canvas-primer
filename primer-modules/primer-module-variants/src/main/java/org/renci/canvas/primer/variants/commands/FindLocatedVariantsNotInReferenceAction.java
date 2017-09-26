@@ -3,12 +3,18 @@ package org.renci.canvas.primer.variants.commands;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.Range;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.Option;
@@ -38,8 +44,8 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
     @Option(name = "--variantType", required = true, multiValued = false)
     private String variantType;
 
-    @Option(name = "--output", required = true, multiValued = false)
-    private String output;
+    @Option(name = "--outputDirectory", required = true, multiValued = false)
+    private String outputDirectory;
 
     public FindLocatedVariantsNotInReferenceAction() {
         super();
@@ -51,43 +57,87 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
 
         List<GeReSe4jBuild> gerese4jBuilds = Arrays.asList(GeReSe4jBuild_37_3.getInstance(), GeReSe4jBuild_38_7.getInstance());
 
+        VariantType vType = canvasDAOBeanService.getVariantTypeDAO().findById(variantType);
+
+        File outputDir = new File(outputDirectory);
+        outputDir.mkdirs();
+
+        File output = new File(outputDir, String.format("badLocatedVariantCoordinates-%s.txt", genomeRefId.toString()));
+
+        for (GeReSe4jBuild build : gerese4jBuilds) {
+            build.init();
+        }
+
         Executors.newSingleThreadExecutor().execute(() -> {
             long start = System.currentTimeMillis();
 
             try {
 
-                VariantType vType = canvasDAOBeanService.getVariantTypeDAO().findById(variantType);
-
-                File outputFile = new File(output);
-                outputFile.getParentFile().mkdirs();
-
-                try (FileWriter fw = new FileWriter(outputFile); BufferedWriter bw = new BufferedWriter(fw)) {
+                try (FileWriter fw = new FileWriter(output); BufferedWriter bw = new BufferedWriter(fw)) {
 
                     List<Long> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
                             .findIdByGenomeRefIdAndVariantType(genomeRefId, vType.getId());
 
-                    List<List<Long>> partitionedFoundLocatedVariants = ListUtils.partition(foundLocatedVariants, 10);
+                    if (CollectionUtils.isEmpty(foundLocatedVariants)) {
+                        logger.warn("foundLocatedVariants is empty");
+                        return;
+                    }
 
-                    for (List<Long> locatedVariantIdList : partitionedFoundLocatedVariants) {
-                        logger.info("starting on partition %s/%s", partitionedFoundLocatedVariants.indexOf(locatedVariantIdList) + 1,
+                    logger.info("foundLocatedVariants.size(): {}", foundLocatedVariants.size());
+
+                    List<List<Long>> partitionedFoundLocatedVariants = ListUtils.partition(foundLocatedVariants, 1000);
+
+                    for (List<Long> partitionList : partitionedFoundLocatedVariants) {
+
+                        logger.info("starting on partition {}/{}", partitionedFoundLocatedVariants.indexOf(partitionList) + 1,
                                 partitionedFoundLocatedVariants.size());
 
-                        for (Long locatedVariantId : locatedVariantIdList) {
-                            LocatedVariant locatedVariant = canvasDAOBeanService.getLocatedVariantDAO().findById(locatedVariantId);
+                        List<Future<String>> results = new ArrayList<>();
 
-                            GeReSe4jBuild build = null;
-                            if (locatedVariant.getGenomeRef().getName().startsWith("37")) {
-                                build = gerese4jBuilds.get(0);
-                            } else {
-                                build = gerese4jBuilds.get(1);
-                            }
+                        ExecutorService es = Executors.newFixedThreadPool(4);
+                        for (Long locatedVariantId : partitionList) {
 
-                            String refSeqValue = build.getRegion(locatedVariant.getGenomeRefSeq().getId(),
-                                    Range.between(locatedVariant.getPosition(), locatedVariant.getEndPosition()),
-                                    !vType.getId().equals("ins"), false);
+                            Future<String> result = es.submit(() -> {
 
-                            if (!refSeqValue.equals(locatedVariant.getRef())) {
-                                bw.write(String.format("%s%n", locatedVariant.toString()));
+                                try {
+                                    LocatedVariant locatedVariant = canvasDAOBeanService.getLocatedVariantDAO().findById(locatedVariantId);
+
+                                    GeReSe4jBuild build = null;
+                                    if (locatedVariant.getGenomeRef().getName().startsWith("37")) {
+                                        build = gerese4jBuilds.get(0);
+                                    } else {
+                                        build = gerese4jBuilds.get(1);
+                                    }
+
+                                    String refSeqValue = build.getRegion(locatedVariant.getGenomeRefSeq().getId(),
+                                            Range.between(locatedVariant.getPosition(), locatedVariant.getEndPosition()),
+                                            !vType.getId().equals("ins"), false);
+
+                                    if (!refSeqValue.equals(locatedVariant.getRef())) {
+                                        return locatedVariant.toString();
+                                    }
+                                } catch (Exception e) {
+                                    logger.error(e.getMessage(), e);
+                                }
+                                return "";
+
+                            });
+
+                            results.add(result);
+                        }
+
+                        es.shutdown();
+                        if (es.awaitTermination(1, TimeUnit.DAYS)) {
+                            es.shutdownNow();
+                        }
+
+                        for (Future<String> result : results) {
+
+                            String ret = result.get();
+                            if (StringUtils.isNotEmpty(ret)) {
+                                bw.write(ret);
+                                bw.newLine();
+                                bw.flush();
                             }
 
                         }
