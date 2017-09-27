@@ -172,12 +172,12 @@ public class FindBadLocatedVariantsAction implements Action {
                         bw.flush();
                     }
 
-                    es.shutdown();
-                    if (!es.awaitTermination(1L, TimeUnit.DAYS)) {
-                        es.shutdownNow();
-                    }
                 }
 
+                es.shutdown();
+                if (!es.awaitTermination(1L, TimeUnit.DAYS)) {
+                    es.shutdownNow();
+                }
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
