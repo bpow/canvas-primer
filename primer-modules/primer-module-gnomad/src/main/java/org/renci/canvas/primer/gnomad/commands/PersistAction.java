@@ -325,7 +325,7 @@ public class PersistAction implements Action {
     private Pair<String, File> downloadLatest() {
 
         File download = new File(getGnomadExomesVCF());
-        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.(\\d+|X|Y)\\.vcf");
+        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.?(\\d+|X|Y)?\\.vcf\\.?(gz)?");
         Matcher m = p.matcher(download.getName());
         m.find();
         String version = null;

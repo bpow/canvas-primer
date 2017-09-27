@@ -1,5 +1,7 @@
 package org.renci.canvas.primer.gnomad;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -65,14 +67,16 @@ public class Scratch {
     @Test
     public void downloadVersionRegex() {
 
-        File download = new File("/home/jdr0887/Downloads", "gnomad.exomes.r2.0.1.sites.X.vcf");
+        List<String> fileNames = Arrays.asList("gnomad.exomes.r2.0.1.sites.vcf.gz", "gnomad.exomes.r2.0.1.sites.X.vcf");
 
-        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.(\\d+|X|Y)\\.vcf");
-        Matcher m = p.matcher(download.getName());
-        m.find();
-        if (m.matches()) {
+        Pattern p = Pattern.compile("gnomad\\.exomes\\.r(?<version>\\d\\.\\d\\.\\d)\\.sites\\.?(\\d+|X|Y)?\\.vcf\\.?(gz)?");
+
+        for (String file : fileNames) {
+            Matcher m = p.matcher(file);
+            m.find();
+            assertTrue(m.matches());
             String version = m.group("version");
-            System.out.println(version);
+            assertTrue(version.equals("2.0.1"));
         }
 
     }
@@ -100,8 +104,7 @@ public class Scratch {
             }
         }
 
-        try (FileOutputStream fos = new FileOutputStream(
-                new File("/tmp", String.format("%s.txt", UUID.randomUUID().toString())));
+        try (FileOutputStream fos = new FileOutputStream(new File("/tmp", String.format("%s.txt", UUID.randomUUID().toString())));
                 GZIPOutputStream gzipos = new GZIPOutputStream(fos, Double.valueOf(Math.pow(2, 14)).intValue());
                 ObjectOutputStream oos = new ObjectOutputStream(gzipos)) {
             oos.writeObject(variantContextList);
