@@ -85,7 +85,7 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
 
                     logger.info("foundLocatedVariants.size(): {}", foundLocatedVariants.size());
 
-                    List<List<Long>> partitionedFoundLocatedVariants = ListUtils.partition(foundLocatedVariants, 1000);
+                    List<List<Long>> partitionedFoundLocatedVariants = ListUtils.partition(foundLocatedVariants, 10000);
 
                     for (List<Long> partitionList : partitionedFoundLocatedVariants) {
 
@@ -94,7 +94,7 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
 
                         List<Future<String>> results = new ArrayList<>();
 
-                        ExecutorService es = Executors.newFixedThreadPool(4);
+                        ExecutorService es = Executors.newFixedThreadPool(8);
                         for (Long locatedVariantId : partitionList) {
 
                             Future<String> result = es.submit(() -> {
