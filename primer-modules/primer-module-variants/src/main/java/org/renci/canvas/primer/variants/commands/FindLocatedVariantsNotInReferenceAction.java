@@ -71,78 +71,166 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
         Executors.newSingleThreadExecutor().execute(() -> {
             long start = System.currentTimeMillis();
 
-            try {
+            try (FileWriter fw = new FileWriter(output); BufferedWriter bw = new BufferedWriter(fw)) {
 
-                try (FileWriter fw = new FileWriter(output); BufferedWriter bw = new BufferedWriter(fw)) {
+                String header = String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", "LocatedVariant.id",
+                        String.format("Variants_?_%s", genomeRefId.toString()), "BinResultsFinalDiagnostic", "ClinVar", "Gnomad", "HGMD",
+                        "ExAC", "ESP", "dbSNP", "OneKGenomeSNP", "OneKGenomeIndel", "Assembly");
 
-                    List<Long> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
-                            .findIdByGenomeRefIdAndVariantType(genomeRefId, vType.getId());
+                bw.write(header);
+                bw.newLine();
+                bw.flush();
 
-                    if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                        logger.warn("foundLocatedVariants is empty");
-                        return;
-                    }
+                List<Long> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO().findIdByGenomeRefIdAndVariantType(genomeRefId,
+                        vType.getId());
 
-                    logger.info("foundLocatedVariants.size(): {}", foundLocatedVariants.size());
+                if (CollectionUtils.isEmpty(foundLocatedVariants)) {
+                    logger.warn("foundLocatedVariants is empty");
+                    return;
+                }
 
-                    List<List<Long>> partitionedFoundLocatedVariants = ListUtils.partition(foundLocatedVariants, 10000);
+                logger.info("foundLocatedVariants.size(): {}", foundLocatedVariants.size());
 
-                    for (List<Long> partitionList : partitionedFoundLocatedVariants) {
+                List<List<Long>> partitionedFoundLocatedVariants = ListUtils.partition(foundLocatedVariants, 180);
 
-                        logger.info("starting on partition {}/{}", partitionedFoundLocatedVariants.indexOf(partitionList) + 1,
-                                partitionedFoundLocatedVariants.size());
+                for (List<Long> partitionList : partitionedFoundLocatedVariants) {
 
-                        List<Future<String>> results = new ArrayList<>();
+                    logger.info("starting on partition {}/{}", partitionedFoundLocatedVariants.indexOf(partitionList) + 1,
+                            partitionedFoundLocatedVariants.size());
 
-                        ExecutorService es = Executors.newFixedThreadPool(8);
-                        for (Long locatedVariantId : partitionList) {
+                    List<Future<String>> results = new ArrayList<>();
 
-                            Future<String> result = es.submit(() -> {
+                    List<LocatedVariant> locatedVariantList = canvasDAOBeanService.getLocatedVariantDAO().findByIdList(partitionList);
 
-                                try {
-                                    LocatedVariant locatedVariant = canvasDAOBeanService.getLocatedVariantDAO().findById(locatedVariantId);
+                    ExecutorService es = Executors.newFixedThreadPool(6);
+                    for (LocatedVariant locatedVariant : locatedVariantList) {
 
-                                    GeReSe4jBuild build = null;
-                                    if (locatedVariant.getGenomeRef().getName().startsWith("37")) {
-                                        build = gerese4jBuilds.get(0);
-                                    } else {
-                                        build = gerese4jBuilds.get(1);
-                                    }
+                        Future<String> result = es.submit(() -> {
 
-                                    String refSeqValue = build.getRegion(locatedVariant.getGenomeRefSeq().getId(),
-                                            Range.between(locatedVariant.getPosition(), locatedVariant.getEndPosition()),
-                                            !vType.getId().equals("ins"), false);
+                            try {
 
-                                    if (!refSeqValue.equals(locatedVariant.getRef())) {
-                                        return locatedVariant.toString();
-                                    }
-                                } catch (Exception e) {
-                                    logger.error(e.getMessage(), e);
+                                GeReSe4jBuild build = null;
+                                if (locatedVariant.getGenomeRef().getName().startsWith("37")) {
+                                    build = gerese4jBuilds.get(0);
+                                } else {
+                                    build = gerese4jBuilds.get(1);
                                 }
-                                return "";
 
-                            });
+                                String refSeqValue = build.getRegion(locatedVariant.getGenomeRefSeq().getId(),
+                                        Range.between(locatedVariant.getPosition(), locatedVariant.getEndPosition()),
+                                        !vType.getId().equals("ins"), false);
 
-                            results.add(result);
-                        }
+                                if (!refSeqValue.equals(locatedVariant.getRef())) {
 
-                        es.shutdown();
-                        if (es.awaitTermination(1, TimeUnit.DAYS)) {
-                            es.shutdownNow();
-                        }
+                                    Boolean foundInVariants = Boolean.FALSE;
+                                    Boolean foundInBinResultsFinalDiagnostic = Boolean.FALSE;
+                                    Boolean foundInClinVar = Boolean.FALSE;
+                                    Boolean foundInGnomad = Boolean.FALSE;
+                                    Boolean foundInHGMD = Boolean.FALSE;
+                                    Boolean foundInExAC = Boolean.FALSE;
+                                    Boolean foundInESP = Boolean.FALSE;
+                                    Boolean foundInDBSNP = Boolean.FALSE;
+                                    Boolean foundInOneKGenomeSNP = Boolean.FALSE;
+                                    Boolean foundInOneKGenomeIndel = Boolean.FALSE;
+                                    Boolean foundInAssembly = Boolean.FALSE;
 
-                        for (Future<String> result : results) {
+                                    switch (genomeRefId) {
+                                        case 2:
+                                            if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getVariants_61_2_DAO()
+                                                    .findByLocatedVariantId(locatedVariant.getId()))) {
+                                                foundInVariants = Boolean.TRUE;
+                                            }
+                                            break;
+                                        case 4:
+                                            if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getVariants_80_4_DAO()
+                                                    .findByLocatedVariantId(locatedVariant.getId()))) {
+                                                foundInVariants = Boolean.TRUE;
+                                            }
+                                            break;
 
-                            String ret = result.get();
-                            if (StringUtils.isNotEmpty(ret)) {
-                                bw.write(ret);
-                                bw.newLine();
-                                bw.flush();
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getBinResultsFinalDiagnosticDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInGnomad = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getReferenceClinicalAssertionDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInClinVar = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getGnomADVariantFrequencyDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInGnomad = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getHGMDLocatedVariantDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInHGMD = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getExACVariantFrequencyDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInExAC = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getESPSNPFrequencyPopulationDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInESP = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(
+                                            canvasDAOBeanService.getSNPMappingAggDAO().findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInDBSNP = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getOneKGenomesSNPFrequencyPopulationDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInOneKGenomeSNP = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getOneKGenomesIndelFrequencyDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInOneKGenomeIndel = Boolean.TRUE;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(canvasDAOBeanService.getAssemblyLocatedVariantDAO()
+                                            .findByLocatedVariantId(locatedVariant.getId()))) {
+                                        foundInAssembly = Boolean.TRUE;
+                                    }
+
+                                    return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", locatedVariant.getId(),
+                                            foundInVariants, foundInBinResultsFinalDiagnostic, foundInClinVar, foundInGnomad, foundInHGMD,
+                                            foundInExAC, foundInESP, foundInDBSNP, foundInOneKGenomeSNP, foundInOneKGenomeIndel,
+                                            foundInAssembly);
+                                }
+                            } catch (Exception e) {
+                                logger.error(e.getMessage(), e);
                             }
+                            return "";
 
+                        });
+
+                        results.add(result);
+                    }
+
+                    for (Future<String> result : results) {
+
+                        String ret = result.get();
+                        if (StringUtils.isNotEmpty(ret)) {
+                            bw.write(ret);
+                            bw.newLine();
+                            bw.flush();
                         }
 
                     }
+
+                    es.shutdown();
+                    if (es.awaitTermination(1, TimeUnit.HOURS)) {
+                        es.shutdownNow();
+                    }
+
                 }
 
             } catch (Exception e) {
