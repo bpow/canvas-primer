@@ -89,7 +89,10 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
         try {
 
             GeReSe4jBuild gerese4jBuild37 = GeReSe4jBuild_37_3.getInstance();
+            gerese4jBuild37.init();
+
             GeReSe4jBuild gerese4jBuild38 = GeReSe4jBuild_38_7.getInstance();
+            gerese4jBuild38.init();
 
             Path clinvarPath = Paths.get(System.getProperty("karaf.data"), "ClinVar");
             File clinvarDir = clinvarPath.toFile();
@@ -498,6 +501,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
                                                 locatedVariant37 = processMutation(measure, sequenceLocationType, gerese4jBuild37,
                                                         genomeRef37, genomeRefSeq, allVariantTypes);
+
                                                 if (locatedVariant37 != null) {
 
                                                     List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
@@ -552,9 +556,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             callable.setNote(String.format("Persisted latest ClinVar: %s", clinvarVersion.getId()));
             Executors.newSingleThreadExecutor().submit(callable).get();
 
-        } catch (
-
-        Exception e) {
+        } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
 
@@ -630,6 +632,9 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
         LocatedVariant locatedVariant = null;
         String refBase = null;
 
+        String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
+                && !sequenceLocationType.getAlternateAllele().equals("-") ? sequenceLocationType.getAlternateAllele() : "";
+
         try {
             switch (measureType) {
                 case "Deletion":
@@ -643,40 +648,29 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                     }
 
                     locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                            refBase, sequenceLocationType.getAlternateAllele(), allVariantTypes);
+                            refBase, alt, allVariantTypes);
 
                     break;
                 case "Insertion":
                 case "Duplication":
 
-                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
-                            && !sequenceLocationType.getAlternateAllele().equals("-")) {
-
-                        if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
-                            refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
-                                    true);
-                        } else {
-                            refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
-                                    Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()),
-                                    true);
-                        }
-
-                        locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                                refBase, sequenceLocationType.getAlternateAllele(), allVariantTypes);
+                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
+                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
+                                true);
+                    } else {
+                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
+                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()), true);
                     }
+
+                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                            refBase, alt, allVariantTypes);
 
                     break;
                 case "single nucleotide variant":
 
-                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
-                            && !sequenceLocationType.getAlternateAllele().equals("-")) {
-
-                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
-                                true);
-                        locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                                refBase, sequenceLocationType.getAlternateAllele(), allVariantTypes);
-
-                    }
+                    refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(), true);
+                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                            refBase, alt, allVariantTypes);
 
                     break;
             }
