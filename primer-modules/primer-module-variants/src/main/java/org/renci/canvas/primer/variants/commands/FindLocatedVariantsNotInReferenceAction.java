@@ -73,7 +73,7 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
 
             try (FileWriter fw = new FileWriter(output); BufferedWriter bw = new BufferedWriter(fw)) {
 
-                String header = String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", "LocatedVariant.id",
+                String header = String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", "LocatedVariant",
                         String.format("Variants_?_%s", genomeRefId.toString()), "BinResultsFinalDiagnostic", "ClinVar", "Gnomad", "HGMD",
                         "ExAC", "ESP", "dbSNP", "OneKGenomeSNP", "OneKGenomeIndel", "Assembly");
 
@@ -102,7 +102,7 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
 
                     List<LocatedVariant> locatedVariantList = canvasDAOBeanService.getLocatedVariantDAO().findByIdList(partitionList);
 
-                    ExecutorService es = Executors.newFixedThreadPool(6);
+                    ExecutorService es = Executors.newFixedThreadPool(3);
                     for (LocatedVariant locatedVariant : locatedVariantList) {
 
                         Future<String> result = es.submit(() -> {
@@ -200,7 +200,7 @@ public class FindLocatedVariantsNotInReferenceAction implements Action {
                                         foundInAssembly = Boolean.TRUE;
                                     }
 
-                                    return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", locatedVariant.getId(),
+                                    return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", locatedVariant.toString(),
                                             foundInVariants, foundInBinResultsFinalDiagnostic, foundInClinVar, foundInGnomad, foundInHGMD,
                                             foundInExAC, foundInESP, foundInDBSNP, foundInOneKGenomeSNP, foundInOneKGenomeIndel,
                                             foundInAssembly);

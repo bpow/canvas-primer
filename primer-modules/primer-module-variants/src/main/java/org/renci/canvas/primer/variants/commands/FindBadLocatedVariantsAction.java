@@ -143,9 +143,9 @@ public class FindBadLocatedVariantsAction implements Action {
                                 foundInAssembly = Boolean.TRUE;
                             }
 
-                            return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", locatedVariant.getId(), foundInVariants,
-                                    foundInBinResultsFinalDiagnostic, foundInClinVar, foundInGnomad, foundInHGMD, foundInExAC, foundInESP,
-                                    foundInDBSNP, foundInOneKGenomeSNP, foundInOneKGenomeIndel, foundInAssembly);
+                            return String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", locatedVariant.toString(),
+                                    foundInVariants, foundInBinResultsFinalDiagnostic, foundInClinVar, foundInGnomad, foundInHGMD,
+                                    foundInExAC, foundInESP, foundInDBSNP, foundInOneKGenomeSNP, foundInOneKGenomeIndel, foundInAssembly);
                         } catch (Exception e) {
                             logger.error(e.getMessage(), e);
                         }
@@ -158,7 +158,7 @@ public class FindBadLocatedVariantsAction implements Action {
 
                 try (FileWriter fw = new FileWriter(outputFile); BufferedWriter bw = new BufferedWriter(fw)) {
 
-                    String header = String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", "LocatedVariant.id",
+                    String header = String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", "LocatedVariant",
                             String.format("Variants_?_%s", genomeRefId.toString()), "BinResultsFinalDiagnostic", "ClinVar", "Gnomad",
                             "HGMD", "ExAC", "ESP", "dbSNP", "OneKGenomeSNP", "OneKGenomeIndel", "Assembly");
 
