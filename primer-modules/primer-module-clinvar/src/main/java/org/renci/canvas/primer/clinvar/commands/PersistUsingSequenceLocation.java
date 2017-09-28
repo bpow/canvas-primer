@@ -30,6 +30,7 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -544,12 +545,15 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                     }
                 });
 
-                serializedFile.delete();
             }
+            
             es.shutdown();
             if (!es.awaitTermination(3L, TimeUnit.DAYS)) {
                 es.shutdownNow();
             }
+
+            FileUtils.deleteDirectory(clinvarDirTmp);
+
             canonicalize(canonicalLocatedVariants);
 
             UpdateDiagnosticResultVersionCallable callable = new UpdateDiagnosticResultVersionCallable(canvasDAOBeanService);
