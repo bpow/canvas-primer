@@ -185,7 +185,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 if (okToAdd) {
 
                                     pstList.add(pst);
-                                    if ((pstList.size() % 5000) == 0) {
+                                    if ((pstList.size() % 4000) == 0) {
                                         File f = new File(clinvarDirTmp, UUID.randomUUID().toString());
                                         serializedFileList.add(f);
                                         try (FileOutputStream fos = new FileOutputStream(f);
@@ -371,21 +371,21 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
             List<Pair<LocatedVariant, LocatedVariant>> canonicalLocatedVariants = new ArrayList<>();
 
             logger.info("persisting ReferenceClinicalAssertions/LocatedVariants");
+            es = Executors.newFixedThreadPool(2);
             for (File serializedFile : serializedFileList) {
 
-                try (FileInputStream fis = new FileInputStream(serializedFile);
-                        GZIPInputStream gzipis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 14)).intValue());
-                        ObjectInputStream ois = new ObjectInputStream(gzipis)) {
-                    pstList = (List<PublicSetType>) ois.readObject();
-                } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
-                }
+                es.submit(() -> {
 
-                es = Executors.newFixedThreadPool(3);
+                    List<PublicSetType> publicSetTypeList = null;
+                    try (FileInputStream fis = new FileInputStream(serializedFile);
+                            GZIPInputStream gzipis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 14)).intValue());
+                            ObjectInputStream ois = new ObjectInputStream(gzipis)) {
+                        publicSetTypeList = (List<PublicSetType>) ois.readObject();
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
 
-                for (PublicSetType pst : pstList) {
-
-                    es.submit(() -> {
+                    for (PublicSetType pst : publicSetTypeList) {
 
                         try {
 
@@ -537,16 +537,14 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                             logger.error(e.getMessage(), e);
                         }
 
-                    });
-
-                }
-
-                es.shutdown();
-                if (!es.awaitTermination(1L, TimeUnit.DAYS)) {
-                    es.shutdownNow();
-                }
+                    }
+                });
 
                 serializedFile.delete();
+            }
+            es.shutdown();
+            if (!es.awaitTermination(3L, TimeUnit.DAYS)) {
+                es.shutdownNow();
             }
             canonicalize(canonicalLocatedVariants);
 
@@ -651,7 +649,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                 case "Insertion":
                 case "Duplication":
 
-                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())) {
+                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
+                            && !sequenceLocationType.getAlternateAllele().equals("-")) {
 
                         if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
                             refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
@@ -669,11 +668,14 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                     break;
                 case "single nucleotide variant":
 
-                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())) {
+                    if (StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
+                            && !sequenceLocationType.getAlternateAllele().equals("-")) {
+
                         refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
                                 true);
                         locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
                                 refBase, sequenceLocationType.getAlternateAllele(), allVariantTypes);
+
                     }
 
                     break;
