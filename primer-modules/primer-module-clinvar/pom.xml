@@ -2,13 +2,13 @@
   <parent>
     <groupId>org.renci.canvas.primer</groupId>
     <artifactId>primer-modules</artifactId>
-    <version>0.0.36-SNAPSHOT</version>
+    <version>0.0.36</version>
   </parent>
   <name>CANVAS :: Primer :: Modules :: ClinVar</name>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.renci.canvas.primer.primer-modules</groupId>
   <artifactId>primer-module-clinvar</artifactId>
-  <version>0.0.36-SNAPSHOT</version>
+  <version>0.0.36</version>
   <packaging>bundle</packaging>
   <properties>
     <maven.site.plugin.skip>true</maven.site.plugin.skip>    
