@@ -47,6 +47,7 @@ public class LocatedVariantUtil {
             }
         } catch (GeReSe4jException e) {
             logger.warn(e.getMessage());
+            return null;
         }
 
         if (refBase.equals(alt)) {
