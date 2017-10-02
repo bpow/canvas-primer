@@ -28,11 +28,9 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
-import org.renci.canvas.dao.commons.LocatedVariantFactory;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.LocatedVariant;
@@ -46,7 +44,7 @@ import org.renci.clinvar.PublicSetType;
 import org.renci.clinvar.ReferenceAssertionType;
 import org.renci.clinvar.ReleaseType;
 import org.renci.clinvar.SequenceLocationType;
-import org.renci.gerese4j.core.GeReSe4jBuild;
+import org.renci.gerese4j.core.impl.GeReSe4jBuild_37_3;
 import org.renci.gerese4j.core.impl.GeReSe4jBuild_38_7;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -333,11 +331,25 @@ public class Scratch {
                                     continue asdf;
                                 }
 
-                                if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
+                                // if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
+                                //
+                                // LocatedVariant locatedVariant = LocatedVariantUtil.processMutation(measure.getType(),
+                                // sequenceLocationType, GeReSe4jBuild_38_7.getInstance(new File("/home/jdr0887/gerese4j")),
+                                // genomeRef, genomeRefSeq, allVariantTypes);
+                                //
+                                // if (locatedVariant != null) {
+                                // bw.write(locatedVariant.toString());
+                                // bw.newLine();
+                                // bw.flush();
+                                // }
+                                //
+                                // }
 
-                                    LocatedVariant locatedVariant = processMutation(measure.getType(), sequenceLocationType,
-                                            GeReSe4jBuild_38_7.getInstance(new File("/home/jdr0887/gerese4j")), genomeRef, genomeRefSeq,
-                                            allVariantTypes);
+                                if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
+
+                                    LocatedVariant locatedVariant = LocatedVariantUtil.processMutation(measure.getType(),
+                                            sequenceLocationType, GeReSe4jBuild_37_3.getInstance(new File("/home/jdr0887/gerese4j")),
+                                            genomeRef, genomeRefSeq, allVariantTypes);
 
                                     if (locatedVariant != null) {
                                         bw.write(locatedVariant.toString());
@@ -346,15 +358,6 @@ public class Scratch {
                                     }
 
                                 }
-
-                                // if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
-                                //
-                                // LocatedVariant locatedVariant = processMutation(measure.getType(), sequenceLocationType,
-                                // GeReSe4jBuild_37_3.getInstance(), genomeRef, genomeRefSeq, allVariantTypes);
-                                //
-                                // locatedVariantList.add(locatedVariant);
-                                //
-                                // }
 
                             }
 
@@ -460,53 +463,6 @@ public class Scratch {
             e.printStackTrace();
         }
 
-    }
-
-    private LocatedVariant processMutation(String measureType, SequenceLocationType sequenceLocationType, GeReSe4jBuild gerese4jBuild,
-            GenomeRef genomeRef, GenomeRefSeq genomeRefSeq, List<VariantType> allVariantTypes) {
-        String refBase = null;
-
-        String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
-                && !sequenceLocationType.getAlternateAllele().equals("-") ? sequenceLocationType.getAlternateAllele() : "";
-
-        try {
-            switch (measureType) {
-                case "Deletion":
-                case "Insertion":
-                case "Duplication":
-                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
-                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
-                                true);
-                    } else {
-                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
-                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue() + 1),
-                                true);
-                    }
-
-                    break;
-                case "single nucleotide variant":
-                    refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(), true);
-                    break;
-            }
-
-            if (refBase == null) {
-                logger.info("here");
-            }
-
-            if (refBase.equals(alt)) {
-                return null;
-            }
-
-            LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
-                    sequenceLocationType.getStart().intValue(), refBase, alt, allVariantTypes);
-
-            return locatedVariant;
-
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-
-        return null;
     }
 
 }

@@ -32,7 +32,6 @@ import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.renci.canvas.dao.CANVASDAOBeanService;
@@ -43,7 +42,6 @@ import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.SubmissionClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
-import org.renci.canvas.dao.commons.LocatedVariantFactory;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.CanonicalAllele;
@@ -441,7 +439,24 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
                                 List<MeasureType> measureTypes = measureSetType.getMeasure();
 
-                                for (MeasureType measureType : measureTypes) {
+                                asdf: for (MeasureType measureType : measureTypes) {
+
+                                    List<AttributeSet> filters = measureType.getAttributeSet().stream()
+                                            .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
+                                            .collect(Collectors.toList());
+
+                                    if (CollectionUtils.isEmpty(filters)) {
+                                        continue;
+                                    }
+
+                                    if (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(filters.stream()
+                                            .filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList()))) {
+                                        continue;
+                                    }
+
+                                    if (measureTypeExcludes.contains(measureType.getType())) {
+                                        continue;
+                                    }
 
                                     String measure = measureType.getType();
                                     logger.debug("measure: {}", measure);
@@ -452,6 +467,20 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                     LocatedVariant locatedVariant37 = null;
 
                                     for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
+
+                                        if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null) {
+                                            continue asdf;
+                                        }
+
+                                        if ((sequenceLocationType.getStop().intValue()
+                                                - sequenceLocationType.getStart().intValue()) > 100) {
+                                            continue asdf;
+                                        }
+
+                                        if (sequenceLocationType.getVariantLength() != null
+                                                && sequenceLocationType.getVariantLength().intValue() > 100) {
+                                            continue asdf;
+                                        }
 
                                         String accession = sequenceLocationType.getAccession();
 
@@ -477,8 +506,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
-                                                locatedVariant38 = processMutation(measure, sequenceLocationType, gerese4jBuild38,
-                                                        genomeRef38, genomeRefSeq, allVariantTypes);
+                                                locatedVariant38 = LocatedVariantUtil.processMutation(measure, sequenceLocationType,
+                                                        gerese4jBuild38, genomeRef38, genomeRefSeq, allVariantTypes);
 
                                                 if (locatedVariant38 != null) {
 
@@ -514,8 +543,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
-                                                locatedVariant37 = processMutation(measure, sequenceLocationType, gerese4jBuild37,
-                                                        genomeRef37, genomeRefSeq, allVariantTypes);
+                                                locatedVariant37 = LocatedVariantUtil.processMutation(measure, sequenceLocationType,
+                                                        gerese4jBuild37, genomeRef37, genomeRefSeq, allVariantTypes);
 
                                                 if (locatedVariant37 != null) {
 
@@ -643,64 +672,6 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
         }
 
-    }
-
-    private LocatedVariant processMutation(String measureType, SequenceLocationType sequenceLocationType, GeReSe4jBuild gerese4jBuild,
-            GenomeRef genomeRef, GenomeRefSeq genomeRefSeq, List<VariantType> allVariantTypes) {
-        LocatedVariant locatedVariant = null;
-        String refBase = null;
-
-        String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
-                && !sequenceLocationType.getAlternateAllele().equals("-") ? sequenceLocationType.getAlternateAllele() : "";
-
-        try {
-            switch (measureType) {
-                case "Deletion":
-
-                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
-                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
-                                true);
-                    } else {
-                        refBase = gerese4jBuild
-                                .getRegion(sequenceLocationType.getAccession(),
-                                        Range.between(sequenceLocationType.getStart().intValue(),
-                                                sequenceLocationType.getStart().intValue() + sequenceLocationType.getStop().intValue() + 1),
-                                        true);
-                    }
-
-                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                            refBase, alt, allVariantTypes);
-
-                    break;
-                case "Insertion":
-                case "Duplication":
-
-                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
-                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
-                                true);
-                    } else {
-                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
-                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue() + 1),
-                                true);
-                    }
-
-                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                            refBase, alt, allVariantTypes);
-
-                    break;
-                case "single nucleotide variant":
-
-                    refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(), true);
-                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                            refBase, alt, allVariantTypes);
-
-                    break;
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-
-        return locatedVariant;
     }
 
 }
