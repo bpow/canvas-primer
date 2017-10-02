@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,9 +28,13 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
+import org.renci.canvas.dao.commons.LocatedVariantFactory;
+import org.renci.canvas.dao.ref.model.GenomeRef;
+import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.LocatedVariant;
 import org.renci.canvas.dao.var.model.VariantType;
 import org.renci.canvas.primer.commons.FTPFactory;
@@ -43,10 +46,14 @@ import org.renci.clinvar.PublicSetType;
 import org.renci.clinvar.ReferenceAssertionType;
 import org.renci.clinvar.ReleaseType;
 import org.renci.clinvar.SequenceLocationType;
-import org.renci.gerese4j.core.impl.GeReSe4jBuild_37_3;
+import org.renci.gerese4j.core.GeReSe4jBuild;
 import org.renci.gerese4j.core.impl.GeReSe4jBuild_38_7;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Scratch {
+
+    private static final Logger logger = LoggerFactory.getLogger(Scratch.class);
 
     @Test
     public void hgvsLocation4Deletion() {
@@ -253,83 +260,87 @@ public class Scratch {
     @Test
     public void useSequenceLocations() {
         File clinvarXmlFile = new File("/home/jdr0887/Downloads", "ClinVarFullRelease_00-latest.xml.gz");
+        GenomeRef genomeRef = null;
+        GenomeRefSeq genomeRefSeq = null;
+
+        List<VariantType> allVariantTypes = Arrays.asList(new VariantType("snp"), new VariantType("ref"), new VariantType("ins"),
+                new VariantType("del"));
+
+        List<LocatedVariant> locatedVariantList = new ArrayList<>();
+
         try (FileInputStream fis = new FileInputStream(clinvarXmlFile); GZIPInputStream gzis = new GZIPInputStream(fis)) {
-            XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(gzis);
 
-            JAXBContext jc = JAXBContext.newInstance(ReleaseType.class);
-            Unmarshaller u = jc.createUnmarshaller();
-            JAXBElement<ReleaseType> releaseType = u.unmarshal(reader, ReleaseType.class);
-            List<PublicSetType> publicSetTypeList = releaseType.getValue().getClinVarSet();
+            XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+            XMLEventReader reader = xmlInputFactory.createXMLEventReader(gzis);
 
-            List<LocatedVariant> locatedVariantList = new ArrayList<>();
+            JAXBContext jc = JAXBContext.newInstance(ReleaseType.class, ReferenceAssertionType.class);
+            Unmarshaller unmarshaller = jc.createUnmarshaller();
 
-            for (PublicSetType pst : publicSetTypeList) {
-                ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
-                MeasureSetType measureSetType = rat.getMeasureSet();
-                List<MeasureType> measures = measureSetType.getMeasure();
-                if (CollectionUtils.isNotEmpty(measures)) {
-                    for (MeasureType measure : measures) {
+            QName clinvarSetQName = new QName("ClinVarSet");
 
-                        String measureType = measure.getType();
+            XMLEvent xmlEvent = null;
+            while ((xmlEvent = reader.peek()) != null) {
 
-                        List<SequenceLocationType> sequenceLocationList = measure.getSequenceLocation();
+                if (xmlEvent.isStartElement() && ((StartElement) xmlEvent).getName().equals(clinvarSetQName)) {
 
-                        SequenceLocationType slt = null;
+                    PublicSetType pst = unmarshaller.unmarshal(reader, PublicSetType.class).getValue();
+                    ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
 
-                        String refBase = null;
+                    MeasureSetType measureSetType = rat.getMeasureSet();
+                    List<MeasureType> measures = measureSetType.getMeasure();
+                    if (CollectionUtils.isNotEmpty(measures)) {
+                        asdf: for (MeasureType measure : measures) {
 
-                        switch (measureType) {
-                            case "single nucleotide variant":
+                            List<AttributeSet> filters = measure.getAttributeSet().stream()
+                                    .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
+                                    .collect(Collectors.toList());
 
-                                Optional<SequenceLocationType> sequenceLocation4GRCh38 = sequenceLocationList.stream()
-                                        .filter(a -> "GRCh38".equals(a.getAssembly())).findAny();
-                                if (sequenceLocation4GRCh38.isPresent()) {
-                                    slt = sequenceLocation4GRCh38.get();
-                                    try {
-                                        refBase = GeReSe4jBuild_38_7.getInstance().getBase(slt.getAccession(), slt.getStart().intValue(),
-                                                true);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                    LocatedVariant locatedVariant = new LocatedVariant();
-                                    locatedVariant.setPosition(slt.getStart().intValue());
-                                    locatedVariant.setEndPosition(slt.getStart().intValue() + 1);
-                                    locatedVariant.setVariantType(new VariantType("snp"));
-                                    locatedVariant.setRef(refBase);
-                                    locatedVariant.setSeq(slt.getAlternateAllele());
-                                    locatedVariantList.add(locatedVariant);
+                            if (CollectionUtils.isEmpty(filters)
+                                    || (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(filters.stream()
+                                            .filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList())))) {
+                                continue;
+                            }
+
+                            for (SequenceLocationType sequenceLocationType : measure.getSequenceLocation()) {
+
+                                if (sequenceLocationType.getStart() == null
+                                        || sequenceLocationType.getStop() == null && (sequenceLocationType.getVariantLength() != null
+                                                && sequenceLocationType.getVariantLength().intValue() < 100)) {
+                                    continue asdf;
                                 }
 
-                                Optional<SequenceLocationType> sequenceLocation4GRCh37 = sequenceLocationList.stream()
-                                        .filter(a -> "GRCh37".equals(a.getAssembly())).findAny();
-                                if (sequenceLocation4GRCh37.isPresent()) {
-                                    slt = sequenceLocation4GRCh37.get();
-                                    System.out.println(slt.getAccession());
-                                    try {
-                                        refBase = GeReSe4jBuild_37_3.getInstance().getBase(slt.getAccession(), slt.getStart().intValue(),
-                                                true);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                    LocatedVariant locatedVariant = new LocatedVariant();
-                                    locatedVariant.setPosition(slt.getStart().intValue());
-                                    locatedVariant.setEndPosition(slt.getStart().intValue() + 1);
-                                    locatedVariant.setVariantType(new VariantType("snp"));
-                                    locatedVariant.setRef(refBase);
-                                    locatedVariant.setSeq(slt.getAlternateAllele());
+                                if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
+
+                                    LocatedVariant locatedVariant = processMutation(measure.getType(), sequenceLocationType,
+                                            GeReSe4jBuild_38_7.getInstance(new File("/home/jdr0887/gerese4j")), genomeRef, genomeRefSeq,
+                                            allVariantTypes);
+
                                     locatedVariantList.add(locatedVariant);
+
                                 }
 
-                                break;
+                                // if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
+                                //
+                                // LocatedVariant locatedVariant = processMutation(measure.getType(), sequenceLocationType,
+                                // GeReSe4jBuild_37_3.getInstance(), genomeRef, genomeRefSeq, allVariantTypes);
+                                //
+                                // locatedVariantList.add(locatedVariant);
+                                //
+                                // }
+
+                            }
+
                         }
-
                     }
+                } else {
+                    reader.next();
                 }
             }
-
             locatedVariantList.forEach(a -> System.out.println(a.toString()));
 
-        } catch (Exception e) {
+        } catch (
+
+        Exception e) {
             e.printStackTrace();
         }
 
@@ -421,6 +432,62 @@ public class Scratch {
             e.printStackTrace();
         }
 
+    }
+
+    private LocatedVariant processMutation(String measureType, SequenceLocationType sequenceLocationType, GeReSe4jBuild gerese4jBuild,
+            GenomeRef genomeRef, GenomeRefSeq genomeRefSeq, List<VariantType> allVariantTypes) {
+        LocatedVariant locatedVariant = null;
+        String refBase = null;
+
+        String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
+                && !sequenceLocationType.getAlternateAllele().equals("-") ? sequenceLocationType.getAlternateAllele() : "";
+
+        try {
+            switch (measureType) {
+                case "Deletion":
+
+                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
+                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
+                                true);
+                    } else {
+                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
+                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue() + 1),
+                                true);
+                    }
+
+                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                            refBase, alt, allVariantTypes);
+
+                    break;
+                case "Insertion":
+                case "Duplication":
+
+                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
+                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
+                                true);
+                    } else {
+                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
+                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue() + 1),
+                                true);
+                    }
+
+                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                            refBase, alt, allVariantTypes);
+
+                    break;
+                case "single nucleotide variant":
+
+                    refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(), true);
+                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
+                            refBase, alt, allVariantTypes);
+
+                    break;
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+
+        return locatedVariant;
     }
 
 }
