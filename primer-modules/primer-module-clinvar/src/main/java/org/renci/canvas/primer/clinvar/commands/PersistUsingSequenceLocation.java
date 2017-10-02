@@ -163,7 +163,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 continue;
                             }
 
-                            for (MeasureType measureType : measures) {
+                            asdf: for (MeasureType measureType : measures) {
 
                                 List<AttributeSet> filters = measureType.getAttributeSet().stream()
                                         .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
@@ -177,31 +177,26 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
                                 List<SequenceLocationType> sequenceLocationTypeList = measureType.getSequenceLocation();
 
-                                boolean okToAdd = false;
                                 for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-                                    if (sequenceLocationType.getStart() != null && (sequenceLocationType.getVariantLength() != null
-                                            && sequenceLocationType.getVariantLength().intValue() < 100
-                                            && StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele()))) {
-                                        okToAdd = true;
+                                    if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null
+                                            || (sequenceLocationType.getVariantLength() != null
+                                                    && sequenceLocationType.getVariantLength().intValue() > 100)) {
+                                        continue asdf;
                                     }
                                 }
 
-                                if (okToAdd) {
-
-                                    pstList.add(pst);
-                                    if ((pstList.size() % 4000) == 0) {
-                                        File f = new File(clinvarDirTmp, UUID.randomUUID().toString());
-                                        serializedFileList.add(f);
-                                        try (FileOutputStream fos = new FileOutputStream(f);
-                                                GZIPOutputStream gzipos = new GZIPOutputStream(fos,
-                                                        Double.valueOf(Math.pow(2, 14)).intValue());
-                                                ObjectOutputStream oos = new ObjectOutputStream(gzipos)) {
-                                            oos.writeObject(pstList);
-                                        }
-                                        pstList.clear();
+                                pstList.add(pst);
+                                if ((pstList.size() % 4000) == 0) {
+                                    File f = new File(clinvarDirTmp, UUID.randomUUID().toString());
+                                    serializedFileList.add(f);
+                                    try (FileOutputStream fos = new FileOutputStream(f);
+                                            GZIPOutputStream gzipos = new GZIPOutputStream(fos, Double.valueOf(Math.pow(2, 14)).intValue());
+                                            ObjectOutputStream oos = new ObjectOutputStream(gzipos)) {
+                                        oos.writeObject(pstList);
                                     }
-
+                                    pstList.clear();
                                 }
+
                             }
 
                         }
@@ -546,7 +541,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                 });
 
             }
-            
+
             es.shutdown();
             if (!es.awaitTermination(3L, TimeUnit.DAYS)) {
                 es.shutdownNow();
@@ -647,8 +642,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                         refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
                                 true);
                     } else {
-                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
-                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()), true);
+                        refBase = gerese4jBuild
+                                .getRegion(sequenceLocationType.getAccession(),
+                                        Range.between(sequenceLocationType.getStart().intValue(),
+                                                sequenceLocationType.getStart().intValue() + sequenceLocationType.getStop().intValue() + 1),
+                                        true);
                     }
 
                     locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
@@ -663,7 +661,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 true);
                     } else {
                         refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
-                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue()), true);
+                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue() + 1),
+                                true);
                     }
 
                     locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
