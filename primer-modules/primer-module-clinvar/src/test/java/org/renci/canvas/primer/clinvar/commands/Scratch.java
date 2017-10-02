@@ -263,12 +263,15 @@ public class Scratch {
         GenomeRef genomeRef = null;
         GenomeRefSeq genomeRefSeq = null;
 
-        List<VariantType> allVariantTypes = Arrays.asList(new VariantType("snp"), new VariantType("ref"), new VariantType("ins"),
+        List<String> measureTypeExcludes = Arrays.asList("Indel", "Microsatellite", "Inversion", "Variation");
+
+        List<VariantType> allVariantTypes = Arrays.asList(new VariantType("snp"), new VariantType("sub"), new VariantType("ins"),
                 new VariantType("del"));
 
-        List<LocatedVariant> locatedVariantList = new ArrayList<>();
-
-        try (FileInputStream fis = new FileInputStream(clinvarXmlFile); GZIPInputStream gzis = new GZIPInputStream(fis)) {
+        try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
+                GZIPInputStream gzis = new GZIPInputStream(fis);
+                FileWriter fw = new FileWriter(new File("/tmp", "ClinVar-LocatedVariant.txt"));
+                BufferedWriter bw = new BufferedWriter(fw)) {
 
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
             XMLEventReader reader = xmlInputFactory.createXMLEventReader(gzis);
@@ -287,25 +290,46 @@ public class Scratch {
                     ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
 
                     MeasureSetType measureSetType = rat.getMeasureSet();
-                    List<MeasureType> measures = measureSetType.getMeasure();
-                    if (CollectionUtils.isNotEmpty(measures)) {
+
+                    if (measureSetType != null && "Variant".equals(measureSetType.getType())) {
+
+                        List<MeasureType> measures = measureSetType.getMeasure();
+
+                        if (CollectionUtils.isEmpty(measures)) {
+                            continue;
+                        }
+
                         asdf: for (MeasureType measure : measures) {
 
                             List<AttributeSet> filters = measure.getAttributeSet().stream()
                                     .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
                                     .collect(Collectors.toList());
 
-                            if (CollectionUtils.isEmpty(filters)
-                                    || (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(filters.stream()
-                                            .filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList())))) {
+                            if (CollectionUtils.isEmpty(filters)) {
+                                continue;
+                            }
+
+                            if (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(
+                                    filters.stream().filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList()))) {
+                                continue;
+                            }
+
+                            if (measureTypeExcludes.contains(measure.getType())) {
                                 continue;
                             }
 
                             for (SequenceLocationType sequenceLocationType : measure.getSequenceLocation()) {
 
-                                if (sequenceLocationType.getStart() == null
-                                        || sequenceLocationType.getStop() == null && (sequenceLocationType.getVariantLength() != null
-                                                && sequenceLocationType.getVariantLength().intValue() < 100)) {
+                                if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null) {
+                                    continue asdf;
+                                }
+
+                                if ((sequenceLocationType.getStop().intValue() - sequenceLocationType.getStart().intValue()) > 100) {
+                                    continue asdf;
+                                }
+
+                                if (sequenceLocationType.getVariantLength() != null
+                                        && sequenceLocationType.getVariantLength().intValue() > 100) {
                                     continue asdf;
                                 }
 
@@ -315,7 +339,11 @@ public class Scratch {
                                             GeReSe4jBuild_38_7.getInstance(new File("/home/jdr0887/gerese4j")), genomeRef, genomeRefSeq,
                                             allVariantTypes);
 
-                                    locatedVariantList.add(locatedVariant);
+                                    if (locatedVariant != null) {
+                                        bw.write(locatedVariant.toString());
+                                        bw.newLine();
+                                        bw.flush();
+                                    }
 
                                 }
 
@@ -332,11 +360,11 @@ public class Scratch {
 
                         }
                     }
+
                 } else {
                     reader.next();
                 }
             }
-            locatedVariantList.forEach(a -> System.out.println(a.toString()));
 
         } catch (
 
@@ -436,7 +464,6 @@ public class Scratch {
 
     private LocatedVariant processMutation(String measureType, SequenceLocationType sequenceLocationType, GeReSe4jBuild gerese4jBuild,
             GenomeRef genomeRef, GenomeRefSeq genomeRefSeq, List<VariantType> allVariantTypes) {
-        LocatedVariant locatedVariant = null;
         String refBase = null;
 
         String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele())
@@ -445,23 +472,8 @@ public class Scratch {
         try {
             switch (measureType) {
                 case "Deletion":
-
-                    if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
-                        refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
-                                true);
-                    } else {
-                        refBase = gerese4jBuild.getRegion(sequenceLocationType.getAccession(),
-                                Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue() + 1),
-                                true);
-                    }
-
-                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                            refBase, alt, allVariantTypes);
-
-                    break;
                 case "Insertion":
                 case "Duplication":
-
                     if (sequenceLocationType.getStart().intValue() == sequenceLocationType.getStop().intValue()) {
                         refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(),
                                 true);
@@ -470,24 +482,31 @@ public class Scratch {
                                 Range.between(sequenceLocationType.getStart().intValue(), sequenceLocationType.getStop().intValue() + 1),
                                 true);
                     }
-
-                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                            refBase, alt, allVariantTypes);
 
                     break;
                 case "single nucleotide variant":
-
                     refBase = gerese4jBuild.getBase(sequenceLocationType.getAccession(), sequenceLocationType.getStart().intValue(), true);
-                    locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq, sequenceLocationType.getStart().intValue(),
-                            refBase, alt, allVariantTypes);
-
                     break;
             }
+
+            if (refBase == null) {
+                logger.info("here");
+            }
+
+            if (refBase.equals(alt)) {
+                return null;
+            }
+
+            LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
+                    sequenceLocationType.getStart().intValue(), refBase, alt, allVariantTypes);
+
+            return locatedVariant;
+
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
 
-        return locatedVariant;
+        return null;
     }
 
 }
