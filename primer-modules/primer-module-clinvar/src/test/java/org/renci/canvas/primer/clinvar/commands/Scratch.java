@@ -369,9 +369,7 @@ public class Scratch {
                 }
             }
 
-        } catch (
-
-        Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
