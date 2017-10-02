@@ -8,6 +8,7 @@ import java.io.ObjectOutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -134,6 +135,8 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             logger.info("parsing: {}", clinvarXmlFile.getName());
 
+            List<String> measureTypeExcludes = Arrays.asList("Indel", "Microsatellite", "Inversion", "Variation");
+
             try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
                     GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 16)).intValue())) {
 
@@ -169,20 +172,36 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                         .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
                                         .collect(Collectors.toList());
 
-                                if (CollectionUtils.isEmpty(filters)
-                                        || (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(filters.stream()
-                                                .filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList())))) {
+                                if (CollectionUtils.isEmpty(filters)) {
+                                    continue;
+                                }
+
+                                if (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(filters.stream()
+                                        .filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList()))) {
+                                    continue;
+                                }
+
+                                if (measureTypeExcludes.contains(measureType.getType())) {
                                     continue;
                                 }
 
                                 List<SequenceLocationType> sequenceLocationTypeList = measureType.getSequenceLocation();
 
                                 for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-                                    if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null
-                                            || (sequenceLocationType.getVariantLength() != null
-                                                    && sequenceLocationType.getVariantLength().intValue() > 100)) {
+
+                                    if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null) {
                                         continue asdf;
                                     }
+
+                                    if ((sequenceLocationType.getStop().intValue() - sequenceLocationType.getStart().intValue()) > 100) {
+                                        continue asdf;
+                                    }
+
+                                    if (sequenceLocationType.getVariantLength() != null
+                                            && sequenceLocationType.getVariantLength().intValue() > 100) {
+                                        continue asdf;
+                                    }
+
                                 }
 
                                 pstList.add(pst);
