@@ -119,7 +119,7 @@ public class GenerateGeneListSupportFilesAction implements Action {
 
                                     List<AnnotationGeneExternalId> filteredAnnotationGeneExternalIds = annotationGeneExternalIds.stream()
                                             .filter(b -> "refseq".equals(b.getId().getNamespace()) && diagnosticResultVersion
-                                                    .getRefseqVersion().toString().equals(b.getId().getNamespaceVer()))
+                                                    .getRefseqVersion().toString().equals(b.getNamespaceVersion()))
                                             .collect(Collectors.toList());
 
                                     if (CollectionUtils.isNotEmpty(filteredAnnotationGeneExternalIds)) {
