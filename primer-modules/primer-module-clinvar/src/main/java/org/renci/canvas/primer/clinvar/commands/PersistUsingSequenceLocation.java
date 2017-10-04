@@ -407,7 +407,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
                             List<MeasureTraitType> measureTraitTypeList = pst.getClinVarAssertion();
 
-                            List<SubmissionClinicalAssertion> scaList = new ArrayList<>();
+                            Set<SubmissionClinicalAssertion> scaSet = new HashSet<>();
                             for (MeasureTraitType mtt : measureTraitTypeList) {
                                 SubmissionClinicalAssertion sca = new SubmissionClinicalAssertion();
                                 sca.setAccession(mtt.getClinVarAccession().getAcc());
@@ -418,7 +418,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 sca.setUpdated(mtt.getClinVarAccession().getDateUpdated().toGregorianCalendar().getTime());
                                 sca.setVersion(mtt.getClinVarAccession().getVersion().intValue());
                                 sca.setId(canvasDAOBeanService.getSubmissionClinicalAssertionDAO().save(sca));
-                                scaList.add(sca);
+                                scaSet.add(sca);
                             }
 
                             MeasureSetType measureSetType = pst.getReferenceClinVarAssertion().getMeasureSet();
@@ -522,14 +522,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                                     logger.info(locatedVariant38.toString());
                                                     rca.setLocatedVariant(locatedVariant38);
                                                     rca.setId(canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca));
-                                                    rca.getVersions().add(clinvarVersion);
-                                                    canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
                                                     logger.info(rca.toString());
-
-                                                    for (SubmissionClinicalAssertion sca : scaList) {
-                                                        sca.setReferenceClinicalAssertion(rca);
-                                                        canvasDAOBeanService.getSubmissionClinicalAssertionDAO().save(sca);
-                                                    }
+                                                    rca.getVersions().add(clinvarVersion);
+                                                    scaSet.stream().forEach(a -> a.getReferenceClinicalAssertions().add(rca));
+                                                    rca.setSubmissionClinicalAssertions(scaSet);
+                                                    canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
 
                                                 }
                                             }
@@ -559,14 +556,14 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                                     logger.info(locatedVariant37.toString());
                                                     rca.setLocatedVariant(locatedVariant37);
                                                     rca.setId(canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca));
-                                                    rca.getVersions().add(clinvarVersion);
-                                                    canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
                                                     logger.info(rca.toString());
 
-                                                    for (SubmissionClinicalAssertion sca : scaList) {
-                                                        sca.setReferenceClinicalAssertion(rca);
-                                                        canvasDAOBeanService.getSubmissionClinicalAssertionDAO().save(sca);
-                                                    }
+                                                    rca.getVersions().add(clinvarVersion);
+
+                                                    scaSet.stream().forEach(a -> a.getReferenceClinicalAssertions().add(rca));
+
+                                                    rca.setSubmissionClinicalAssertions(scaSet);
+                                                    canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
 
                                                 }
 
