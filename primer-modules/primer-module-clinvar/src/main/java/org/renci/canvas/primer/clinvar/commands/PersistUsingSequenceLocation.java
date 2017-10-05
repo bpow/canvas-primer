@@ -8,7 +8,6 @@ import java.io.ObjectOutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +31,7 @@ import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.renci.canvas.dao.CANVASDAOBeanService;
@@ -163,7 +163,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                 continue;
                             }
 
-                            asdf: for (MeasureType measureType : measures) {
+                            for (MeasureType measureType : measures) {
 
                                 List<AttributeSet> filters = measureType.getAttributeSet().stream()
                                         .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
@@ -178,31 +178,13 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                     continue;
                                 }
 
-                                if (measureType.getSequenceLocation().stream().anyMatch( seqLocation ->
-                                        !seqLocation.isSetPositionVCF() ||
-                                                !seqLocation.isSetReferenceAlleleVCF() ||
-                                                !seqLocation.isSetAlternateAlleleVCF())) {
-                                    logger.debug("Missing info for {}, cannot persist", rat.getClinVarAccession().getAcc());
+                                if (measureType.getSequenceLocation().stream()
+                                        .anyMatch(sequenceLocation -> !sequenceLocation.isSetPositionVCF()
+                                                || !sequenceLocation.isSetReferenceAlleleVCF()
+                                                || !sequenceLocation.isSetAlternateAlleleVCF()
+                                                || (sequenceLocation.getVariantLength() != null
+                                                        && sequenceLocation.getVariantLength().intValue() > 100))) {
                                     continue;
-                                }
-
-                                List<SequenceLocationType> sequenceLocationTypeList = measureType.getSequenceLocation();
-
-                                for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-
-                                    if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null) {
-                                        continue asdf;
-                                    }
-
-                                    if ((sequenceLocationType.getStop().intValue() - sequenceLocationType.getStart().intValue()) > 100) {
-                                        continue asdf;
-                                    }
-
-                                    if (sequenceLocationType.getVariantLength() != null
-                                            && sequenceLocationType.getVariantLength().intValue() > 100) {
-                                        continue asdf;
-                                    }
-
                                 }
 
                                 pstList.add(pst);
@@ -442,7 +424,7 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
                                 List<MeasureType> measureTypes = measureSetType.getMeasure();
 
-                                asdf: for (MeasureType measureType : measureTypes) {
+                                for (MeasureType measureType : measureTypes) {
 
                                     List<AttributeSet> filters = measureType.getAttributeSet().stream()
                                             .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
@@ -457,11 +439,12 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                         continue;
                                     }
 
-                                    if (measureType.getSequenceLocation().stream().anyMatch( seqLocation ->
-                                            !seqLocation.isSetPositionVCF() ||
-                                            !seqLocation.isSetReferenceAlleleVCF() ||
-                                            !seqLocation.isSetAlternateAlleleVCF())) {
-                                        logger.debug("Missing info for {}, cannot persist", clinvarAccession.getAcc());
+                                    if (measureType.getSequenceLocation().stream()
+                                            .anyMatch(sequenceLocation -> !sequenceLocation.isSetPositionVCF()
+                                                    || !sequenceLocation.isSetReferenceAlleleVCF()
+                                                    || !sequenceLocation.isSetAlternateAlleleVCF()
+                                                    || (sequenceLocation.getVariantLength() != null
+                                                            && sequenceLocation.getVariantLength().intValue() > 100))) {
                                         continue;
                                     }
 
@@ -474,20 +457,6 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                     LocatedVariant locatedVariant37 = null;
 
                                     for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-
-                                        if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null) {
-                                            continue asdf;
-                                        }
-
-                                        if ((sequenceLocationType.getStop().intValue()
-                                                - sequenceLocationType.getStart().intValue()) > 100) {
-                                            continue asdf;
-                                        }
-
-                                        if (sequenceLocationType.getVariantLength() != null
-                                                && sequenceLocationType.getVariantLength().intValue() > 100) {
-                                            continue asdf;
-                                        }
 
                                         String accession = sequenceLocationType.getAccession();
 
@@ -505,6 +474,14 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                         rca.setAssertion(assertionRanking);
                                         rca.setTraitSet(traitSet);
 
+                                        String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAlleleVCF())
+                                                && !sequenceLocationType.getAlternateAlleleVCF().equals("-")
+                                                        ? sequenceLocationType.getAlternateAlleleVCF() : "";
+
+                                        Range<Integer> range = Range.between(sequenceLocationType.getPositionVCF().intValue(),
+                                                sequenceLocationType.getPositionVCF().intValue()
+                                                        + sequenceLocationType.getReferenceAlleleVCF().length());
+
                                         if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
 
                                             GenomeRefSeq genomeRefSeq = all38GenomeRefSeqs.stream().filter(a -> a.getId().equals(accession))
@@ -513,11 +490,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
+                                                String refBase = gerese4jBuild38.getRegion(sequenceLocationType.getAccession(), range,
+                                                        true);
+
                                                 locatedVariant38 = LocatedVariantFactory.create(genomeRef38, genomeRefSeq,
-                                                        sequenceLocationType.getPositionVCF().intValue(),
-                                                        sequenceLocationType.getReferenceAlleleVCF(),
-                                                        sequenceLocationType.getAlternateAlleleVCF(),
-                                                        allVariantTypes);
+                                                        sequenceLocationType.getPositionVCF().intValue(), refBase, alt, allVariantTypes);
 
                                                 if (locatedVariant38 != null) {
 
@@ -550,11 +527,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
-                                                locatedVariant38 = LocatedVariantFactory.create(genomeRef38, genomeRefSeq,
-                                                        sequenceLocationType.getPositionVCF().intValue(),
-                                                        sequenceLocationType.getReferenceAlleleVCF(),
-                                                        sequenceLocationType.getAlternateAlleleVCF(),
-                                                        allVariantTypes);
+                                                String refBase = gerese4jBuild37.getRegion(sequenceLocationType.getAccession(), range,
+                                                        true);
+
+                                                locatedVariant37 = LocatedVariantFactory.create(genomeRef37, genomeRefSeq,
+                                                        sequenceLocationType.getPositionVCF().intValue(), refBase, alt, allVariantTypes);
 
                                                 if (locatedVariant37 != null) {
 

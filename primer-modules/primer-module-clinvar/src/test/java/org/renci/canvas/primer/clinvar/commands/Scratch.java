@@ -330,12 +330,15 @@ public class Scratch {
                                 continue;
                             }
 
-                            for (SequenceLocationType sequenceLocationType : measure.getSequenceLocation()) {
+                            if (measure.getSequenceLocation().stream()
+                                    .anyMatch(sequenceLocation -> !sequenceLocation.isSetPositionVCF()
+                                            || !sequenceLocation.isSetReferenceAlleleVCF() || !sequenceLocation.isSetAlternateAlleleVCF()
+                                            || (sequenceLocation.getVariantLength() != null
+                                                    && sequenceLocation.getVariantLength().intValue() > 100))) {
+                                continue;
+                            }
 
-                                if (!sequenceLocationType.isSetPositionVCF() || !sequenceLocationType.isSetReferenceAlleleVCF()
-                                        || !sequenceLocationType.isSetAlternateAlleleVCF()) {
-                                    continue;
-                                }
+                            for (SequenceLocationType sequenceLocationType : measure.getSequenceLocation()) {
 
                                 String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAlleleVCF())
                                         && !sequenceLocationType.getAlternateAlleleVCF().equals("-")
@@ -441,21 +444,15 @@ public class Scratch {
                                 continue;
                             }
 
-                            for (SequenceLocationType sequenceLocationType : measure.getSequenceLocation()) {
-
-                                if (sequenceLocationType.getVariantLength() != null
-                                        && sequenceLocationType.getVariantLength().intValue() > 100) {
-                                    continue;
-                                }
-
-                                if (!sequenceLocationType.isSetPositionVCF() || !sequenceLocationType.isSetReferenceAlleleVCF()
-                                        || !sequenceLocationType.isSetAlternateAlleleVCF()) {
-                                    continue;
-                                }
-
-                                count++;
-
+                            if (measure.getSequenceLocation().stream()
+                                    .anyMatch(sequenceLocation -> !sequenceLocation.isSetPositionVCF()
+                                            || !sequenceLocation.isSetReferenceAlleleVCF() || !sequenceLocation.isSetAlternateAlleleVCF()
+                                            || (sequenceLocation.getVariantLength() != null
+                                                    && sequenceLocation.getVariantLength().intValue() > 100))) {
+                                continue;
                             }
+
+                            count++;
 
                         }
                     }
@@ -530,20 +527,15 @@ public class Scratch {
                                 continue;
                             }
 
-                            List<SequenceLocationType> sequenceLocationTypeList = measureType.getSequenceLocation();
-
-                            boolean okToAdd = false;
-                            for (SequenceLocationType sequenceLocationType : sequenceLocationTypeList) {
-                                if (sequenceLocationType.getStart() != null && (sequenceLocationType.getVariantLength() != null
-                                        && sequenceLocationType.getVariantLength().intValue() < 100
-                                        && StringUtils.isNotEmpty(sequenceLocationType.getAlternateAllele()))) {
-                                    okToAdd = true;
-                                }
+                            if (measureType.getSequenceLocation().stream()
+                                    .anyMatch(sequenceLocation -> !sequenceLocation.isSetPositionVCF()
+                                            || !sequenceLocation.isSetReferenceAlleleVCF() || !sequenceLocation.isSetAlternateAlleleVCF()
+                                            || (sequenceLocation.getVariantLength() != null
+                                                    && sequenceLocation.getVariantLength().intValue() > 100))) {
+                                continue;
                             }
 
-                            if (okToAdd) {
-                                pstList.add(pst);
-                            }
+                            pstList.add(pst);
 
                         }
 
