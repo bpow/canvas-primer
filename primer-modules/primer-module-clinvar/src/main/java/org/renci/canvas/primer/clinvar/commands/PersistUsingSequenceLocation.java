@@ -133,8 +133,6 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             logger.info("parsing: {}", clinvarXmlFile.getName());
 
-            List<String> measureTypeExcludes = Arrays.asList("Indel", "Microsatellite", "Inversion", "Variation");
-
             try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
                     GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 16)).intValue())) {
 
@@ -179,7 +177,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                     continue;
                                 }
 
-                                if (measureTypeExcludes.contains(measureType.getType())) {
+                                if (measureType.getSequenceLocation().stream().anyMatch( seqLocation ->
+                                        !seqLocation.isSetPositionVCF() ||
+                                                !seqLocation.isSetReferenceAlleleVCF() ||
+                                                !seqLocation.isSetAlternateAlleleVCF())) {
+                                    logger.debug("Missing info for {}, cannot persist", rat.getClinVarAccession().getAcc());
                                     continue;
                                 }
 
@@ -454,7 +456,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                         continue;
                                     }
 
-                                    if (measureTypeExcludes.contains(measureType.getType())) {
+                                    if (measureType.getSequenceLocation().stream().anyMatch( seqLocation ->
+                                            !seqLocation.isSetPositionVCF() ||
+                                            !seqLocation.isSetReferenceAlleleVCF() ||
+                                            !seqLocation.isSetAlternateAlleleVCF())) {
+                                        logger.debug("Missing info for {}, cannot persist", clinvarAccession.getAcc());
                                         continue;
                                     }
 
