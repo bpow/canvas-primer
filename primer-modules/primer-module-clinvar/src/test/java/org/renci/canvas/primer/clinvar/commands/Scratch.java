@@ -28,9 +28,11 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
+import org.renci.canvas.dao.commons.LocatedVariantFactory;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.LocatedVariant;
@@ -118,7 +120,7 @@ public class Scratch {
         try (FileWriter fw = new FileWriter(output);
                 BufferedWriter bw = new BufferedWriter(fw);
                 FileInputStream fis = new FileInputStream(clinvarXmlFile);
-                GZIPInputStream gzis = new GZIPInputStream(fis)) {
+                GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 14)).intValue())) {
             XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(gzis);
 
             JAXBContext jc = JAXBContext.newInstance(ReleaseType.class);
@@ -162,7 +164,7 @@ public class Scratch {
         try (FileWriter fw = new FileWriter(output);
                 BufferedWriter bw = new BufferedWriter(fw);
                 FileInputStream fis = new FileInputStream(clinvarXmlFile);
-                GZIPInputStream gzis = new GZIPInputStream(fis)) {
+                GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 14)).intValue())) {
             XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(gzis);
 
             JAXBContext jc = JAXBContext.newInstance(ReleaseType.class);
@@ -202,7 +204,8 @@ public class Scratch {
     @Test
     public void printMeasureTypeCounts() {
         File clinvarXmlFile = new File("/home/jdr0887/Downloads", "ClinVarFullRelease_00-latest.xml.gz");
-        try (FileInputStream fis = new FileInputStream(clinvarXmlFile); GZIPInputStream gzis = new GZIPInputStream(fis)) {
+        try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
+                GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 14)).intValue())) {
             XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(gzis);
 
             JAXBContext jc = JAXBContext.newInstance(ReleaseType.class);
@@ -266,10 +269,136 @@ public class Scratch {
         List<VariantType> allVariantTypes = Arrays.asList(new VariantType("snp"), new VariantType("sub"), new VariantType("ins"),
                 new VariantType("del"));
 
+        List<String> allowableAccessions = Arrays.asList("RCV000485317", "RCV000244801", "RCV000207071", "RCV000244801", "RCV000480151",
+                "RCV000250462");
+
         try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
-                GZIPInputStream gzis = new GZIPInputStream(fis);
+                GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 14)).intValue());
                 FileWriter fw = new FileWriter(new File("/tmp", "ClinVar-LocatedVariant.txt"));
                 BufferedWriter bw = new BufferedWriter(fw)) {
+
+            XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+            XMLEventReader reader = xmlInputFactory.createXMLEventReader(gzis);
+
+            JAXBContext jc = JAXBContext.newInstance(ReleaseType.class, ReferenceAssertionType.class);
+            Unmarshaller unmarshaller = jc.createUnmarshaller();
+
+            QName clinvarSetQName = new QName("ClinVarSet");
+
+            XMLEvent xmlEvent = null;
+            while ((xmlEvent = reader.peek()) != null) {
+
+                if (xmlEvent.isStartElement() && ((StartElement) xmlEvent).getName().equals(clinvarSetQName)) {
+
+                    PublicSetType pst = unmarshaller.unmarshal(reader, PublicSetType.class).getValue();
+                    ReferenceAssertionType rat = pst.getReferenceClinVarAssertion();
+
+                    if (!allowableAccessions.contains(rat.getClinVarAccession().getAcc())) {
+                        continue;
+                    }
+
+                    bw.write(rat.getClinVarAccession().getAcc());
+                    bw.newLine();
+                    bw.flush();
+
+                    MeasureSetType measureSetType = rat.getMeasureSet();
+
+                    if (measureSetType != null && "Variant".equals(measureSetType.getType())) {
+
+                        List<MeasureType> measures = measureSetType.getMeasure();
+
+                        if (CollectionUtils.isEmpty(measures)) {
+                            continue;
+                        }
+
+                        for (MeasureType measure : measures) {
+
+                            List<AttributeSet> filters = measure.getAttributeSet().stream()
+                                    .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
+                                    .collect(Collectors.toList());
+
+                            if (CollectionUtils.isEmpty(filters)) {
+                                continue;
+                            }
+
+                            if (CollectionUtils.isNotEmpty(filters) && CollectionUtils.isNotEmpty(
+                                    filters.stream().filter(a -> a.getAttribute().getValue().contains("?")).collect(Collectors.toList()))) {
+                                continue;
+                            }
+
+                            if (measureTypeExcludes.contains(measure.getType())) {
+                                continue;
+                            }
+
+                            for (SequenceLocationType sequenceLocationType : measure.getSequenceLocation()) {
+
+                                if (!sequenceLocationType.isSetPositionVCF() || !sequenceLocationType.isSetReferenceAlleleVCF()
+                                        || !sequenceLocationType.isSetAlternateAlleleVCF()) {
+                                    continue;
+                                }
+
+                                String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAlleleVCF())
+                                        && !sequenceLocationType.getAlternateAlleleVCF().equals("-")
+                                                ? sequenceLocationType.getAlternateAlleleVCF() : "";
+
+                                Range<Integer> range = Range.between(sequenceLocationType.getPositionVCF().intValue(),
+                                        sequenceLocationType.getPositionVCF().intValue()
+                                                + sequenceLocationType.getReferenceAlleleVCF().length());
+
+                                if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
+
+                                    String refBase = GeReSe4jBuild_38_7.getInstance(new File("/home/jdr0887/gerese4j"))
+                                            .getRegion(sequenceLocationType.getAccession(), range, true);
+
+                                    LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
+                                            sequenceLocationType.getPositionVCF().intValue(), refBase, alt, allVariantTypes);
+
+                                    if (locatedVariant != null) {
+                                        bw.write(locatedVariant.toString());
+                                        bw.newLine();
+                                        bw.flush();
+                                    }
+
+                                }
+
+                                if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
+
+                                    String refBase = GeReSe4jBuild_37_3.getInstance(new File("/home/jdr0887/gerese4j"))
+                                            .getRegion(sequenceLocationType.getAccession(), range, true);
+
+                                    LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
+                                            sequenceLocationType.getPositionVCF().intValue(), refBase, alt, allVariantTypes);
+
+                                    if (locatedVariant != null) {
+                                        bw.write(locatedVariant.toString());
+                                        bw.newLine();
+                                        bw.flush();
+                                    }
+
+                                }
+
+                            }
+
+                        }
+                    }
+
+                } else {
+                    reader.next();
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Test
+    public void countSequenceLocationsWithGoodAlleleVCF() {
+        File clinvarXmlFile = new File("/home/jdr0887/Downloads", "ClinVarFullRelease_00-latest.xml.gz");
+        int count = 0;
+        try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
+                GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 14)).intValue())) {
 
             XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
             XMLEventReader reader = xmlInputFactory.createXMLEventReader(gzis);
@@ -297,7 +426,7 @@ public class Scratch {
                             continue;
                         }
 
-                        asdf: for (MeasureType measure : measures) {
+                        for (MeasureType measure : measures) {
 
                             List<AttributeSet> filters = measure.getAttributeSet().stream()
                                     .filter(a -> a.getAttribute().getType().startsWith("HGVS, genomic, top level"))
@@ -312,52 +441,19 @@ public class Scratch {
                                 continue;
                             }
 
-                            if (measureTypeExcludes.contains(measure.getType())) {
-                                continue;
-                            }
-
                             for (SequenceLocationType sequenceLocationType : measure.getSequenceLocation()) {
-
-                                if (sequenceLocationType.getStart() == null || sequenceLocationType.getStop() == null) {
-                                    continue asdf;
-                                }
-
-                                if ((sequenceLocationType.getStop().intValue() - sequenceLocationType.getStart().intValue()) > 100) {
-                                    continue asdf;
-                                }
 
                                 if (sequenceLocationType.getVariantLength() != null
                                         && sequenceLocationType.getVariantLength().intValue() > 100) {
-                                    continue asdf;
+                                    continue;
                                 }
 
-                                // if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
-                                //
-                                // LocatedVariant locatedVariant = LocatedVariantUtil.processMutation(measure.getType(),
-                                // sequenceLocationType, GeReSe4jBuild_38_7.getInstance(new File("/home/jdr0887/gerese4j")),
-                                // genomeRef, genomeRefSeq, allVariantTypes);
-                                //
-                                // if (locatedVariant != null) {
-                                // bw.write(locatedVariant.toString());
-                                // bw.newLine();
-                                // bw.flush();
-                                // }
-                                //
-                                // }
-
-                                if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
-
-                                    LocatedVariant locatedVariant = LocatedVariantUtil.processMutation(measure.getType(),
-                                            sequenceLocationType, GeReSe4jBuild_37_3.getInstance(new File("/home/jdr0887/gerese4j")),
-                                            genomeRef, genomeRefSeq, allVariantTypes);
-
-                                    if (locatedVariant != null) {
-                                        bw.write(locatedVariant.toString());
-                                        bw.newLine();
-                                        bw.flush();
-                                    }
-
+                                if (!sequenceLocationType.isSetPositionVCF() || !sequenceLocationType.isSetReferenceAlleleVCF()
+                                        || !sequenceLocationType.isSetAlternateAlleleVCF()) {
+                                    continue;
                                 }
+
+                                count++;
 
                             }
 
@@ -372,6 +468,7 @@ public class Scratch {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println(count);
 
     }
 
