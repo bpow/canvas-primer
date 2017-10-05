@@ -42,6 +42,7 @@ import org.renci.canvas.dao.clinvar.model.ReferenceClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.SubmissionClinicalAssertion;
 import org.renci.canvas.dao.clinvar.model.Trait;
 import org.renci.canvas.dao.clinvar.model.TraitSet;
+import org.renci.canvas.dao.commons.LocatedVariantFactory;
 import org.renci.canvas.dao.ref.model.GenomeRef;
 import org.renci.canvas.dao.ref.model.GenomeRefSeq;
 import org.renci.canvas.dao.var.model.CanonicalAllele;
@@ -133,8 +134,6 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
 
             logger.info("parsing: {}", clinvarXmlFile.getName());
 
-            List<String> measureTypeExcludes = Arrays.asList("Indel", "Microsatellite", "Inversion", "Variation");
-
             try (FileInputStream fis = new FileInputStream(clinvarXmlFile);
                     GZIPInputStream gzis = new GZIPInputStream(fis, Double.valueOf(Math.pow(2, 16)).intValue())) {
 
@@ -179,7 +178,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                     continue;
                                 }
 
-                                if (measureTypeExcludes.contains(measureType.getType())) {
+                                if (measureType.getSequenceLocation().stream().anyMatch( seqLocation ->
+                                        !seqLocation.isSetPositionVCF() ||
+                                                !seqLocation.isSetReferenceAlleleVCF() ||
+                                                !seqLocation.isSetAlternateAlleleVCF())) {
+                                    logger.debug("Missing info for {}, cannot persist", rat.getClinVarAccession().getAcc());
                                     continue;
                                 }
 
@@ -454,7 +457,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                         continue;
                                     }
 
-                                    if (measureTypeExcludes.contains(measureType.getType())) {
+                                    if (measureType.getSequenceLocation().stream().anyMatch( seqLocation ->
+                                            !seqLocation.isSetPositionVCF() ||
+                                            !seqLocation.isSetReferenceAlleleVCF() ||
+                                            !seqLocation.isSetAlternateAlleleVCF())) {
+                                        logger.debug("Missing info for {}, cannot persist", clinvarAccession.getAcc());
                                         continue;
                                     }
 
@@ -506,8 +513,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
-                                                locatedVariant38 = LocatedVariantUtil.processMutation(measure, sequenceLocationType,
-                                                        gerese4jBuild38, genomeRef38, genomeRefSeq, allVariantTypes);
+                                                locatedVariant38 = LocatedVariantFactory.create(genomeRef38, genomeRefSeq,
+                                                        sequenceLocationType.getPositionVCF().intValue(),
+                                                        sequenceLocationType.getReferenceAlleleVCF(),
+                                                        sequenceLocationType.getAlternateAlleleVCF(),
+                                                        allVariantTypes);
 
                                                 if (locatedVariant38 != null) {
 
@@ -540,8 +550,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
-                                                locatedVariant37 = LocatedVariantUtil.processMutation(measure, sequenceLocationType,
-                                                        gerese4jBuild37, genomeRef37, genomeRefSeq, allVariantTypes);
+                                                locatedVariant38 = LocatedVariantFactory.create(genomeRef38, genomeRefSeq,
+                                                        sequenceLocationType.getPositionVCF().intValue(),
+                                                        sequenceLocationType.getReferenceAlleleVCF(),
+                                                        sequenceLocationType.getAlternateAlleleVCF(),
+                                                        allVariantTypes);
 
                                                 if (locatedVariant37 != null) {
 
