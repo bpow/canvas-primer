@@ -31,7 +31,6 @@ import javax.xml.stream.events.XMLEvent;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.renci.canvas.dao.CANVASDAOBeanService;
@@ -64,9 +63,6 @@ import org.renci.clinvar.SequenceLocationType;
 import org.renci.clinvar.SetElementSetType;
 import org.renci.clinvar.TraitSetType;
 import org.renci.clinvar.TraitType;
-import org.renci.gerese4j.core.GeReSe4jBuild;
-import org.renci.gerese4j.core.impl.GeReSe4jBuild_37_3;
-import org.renci.gerese4j.core.impl.GeReSe4jBuild_38_7;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,12 +84,6 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
         long start = System.currentTimeMillis();
 
         try {
-
-            GeReSe4jBuild gerese4jBuild37 = GeReSe4jBuild_37_3.getInstance();
-            gerese4jBuild37.init();
-
-            GeReSe4jBuild gerese4jBuild38 = GeReSe4jBuild_38_7.getInstance();
-            gerese4jBuild38.init();
 
             Path clinvarPath = Paths.get(System.getProperty("karaf.data"), "ClinVar");
             File clinvarDir = clinvarPath.toFile();
@@ -474,14 +464,6 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                         rca.setAssertion(assertionRanking);
                                         rca.setTraitSet(traitSet);
 
-                                        String alt = StringUtils.isNotEmpty(sequenceLocationType.getAlternateAlleleVCF())
-                                                && !sequenceLocationType.getAlternateAlleleVCF().equals("-")
-                                                        ? sequenceLocationType.getAlternateAlleleVCF() : "";
-
-                                        Range<Integer> range = Range.between(sequenceLocationType.getPositionVCF().intValue(),
-                                                sequenceLocationType.getPositionVCF().intValue()
-                                                        + sequenceLocationType.getReferenceAlleleVCF().length());
-
                                         if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
 
                                             GenomeRefSeq genomeRefSeq = all38GenomeRefSeqs.stream().filter(a -> a.getId().equals(accession))
@@ -490,11 +472,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
-                                                String refBase = gerese4jBuild38.getRegion(sequenceLocationType.getAccession(), range,
-                                                        true);
-
                                                 locatedVariant38 = LocatedVariantFactory.create(genomeRef38, genomeRefSeq,
-                                                        sequenceLocationType.getPositionVCF().intValue(), refBase, alt, allVariantTypes);
+                                                        sequenceLocationType.getPositionVCF().intValue(),
+                                                        sequenceLocationType.getReferenceAlleleVCF(),
+                                                        sequenceLocationType.getAlternateAlleleVCF(),
+                                                        allVariantTypes);
 
                                                 if (locatedVariant38 != null) {
 
@@ -527,11 +509,11 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                             if (genomeRefSeq != null) {
                                                 logger.debug(genomeRefSeq.toString());
 
-                                                String refBase = gerese4jBuild37.getRegion(sequenceLocationType.getAccession(), range,
-                                                        true);
-
                                                 locatedVariant37 = LocatedVariantFactory.create(genomeRef37, genomeRefSeq,
-                                                        sequenceLocationType.getPositionVCF().intValue(), refBase, alt, allVariantTypes);
+                                                        sequenceLocationType.getPositionVCF().intValue(),
+                                                        sequenceLocationType.getReferenceAlleleVCF(),
+                                                        sequenceLocationType.getAlternateAlleleVCF(),
+                                                        allVariantTypes);
 
                                                 if (locatedVariant37 != null) {
 
