@@ -464,83 +464,29 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
                                         rca.setAssertion(assertionRanking);
                                         rca.setTraitSet(traitSet);
 
+                                        LocatedVariant currLocatedVariant = null;
+
                                         if ("GRCh38".equals(sequenceLocationType.getAssembly())) {
 
                                             GenomeRefSeq genomeRefSeq = all38GenomeRefSeqs.stream().filter(a -> a.getId().equals(accession))
                                                     .findAny().orElse(null);
 
                                             if (genomeRefSeq != null) {
-                                                logger.debug(genomeRefSeq.toString());
-
-                                                locatedVariant38 = LocatedVariantFactory.create(genomeRef38, genomeRefSeq,
-                                                        sequenceLocationType.getPositionVCF().intValue(),
-                                                        sequenceLocationType.getReferenceAlleleVCF(),
-                                                        sequenceLocationType.getAlternateAlleleVCF(),
-                                                        allVariantTypes);
-
-                                                if (locatedVariant38 != null) {
-
-                                                    List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
-                                                            .findByExample(locatedVariant38);
-                                                    if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                                                        locatedVariant38
-                                                                .setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant38));
-                                                    } else {
-                                                        locatedVariant38 = foundLocatedVariants.get(0);
-                                                    }
-                                                    logger.info(locatedVariant38.toString());
-                                                    rca.setLocatedVariant(locatedVariant38);
-                                                    rca.setId(canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca));
-                                                    logger.info(rca.toString());
-                                                    rca.getVersions().add(clinvarVersion);
-                                                    scaSet.stream().forEach(a -> a.getReferenceClinicalAssertions().add(rca));
-                                                    rca.setSubmissionClinicalAssertions(scaSet);
-                                                    canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
-
-                                                }
+                                                locatedVariant38 =
+                                                        createOrUpdateVariant(sequenceLocationType, genomeRef38, genomeRefSeq,
+                                                                clinvarVersion, scaSet, rca, allVariantTypes);
                                             }
-                                        }
 
-                                        if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
+                                        } else if ("GRCh37".equals(sequenceLocationType.getAssembly())) {
 
                                             GenomeRefSeq genomeRefSeq = all37GenomeRefSeqs.stream().filter(a -> a.getId().equals(accession))
                                                     .findAny().orElse(null);
 
                                             if (genomeRefSeq != null) {
-                                                logger.debug(genomeRefSeq.toString());
-
-                                                locatedVariant37 = LocatedVariantFactory.create(genomeRef37, genomeRefSeq,
-                                                        sequenceLocationType.getPositionVCF().intValue(),
-                                                        sequenceLocationType.getReferenceAlleleVCF(),
-                                                        sequenceLocationType.getAlternateAlleleVCF(),
-                                                        allVariantTypes);
-
-                                                if (locatedVariant37 != null) {
-
-                                                    List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
-                                                            .findByExample(locatedVariant37);
-                                                    if (CollectionUtils.isEmpty(foundLocatedVariants)) {
-                                                        locatedVariant37
-                                                                .setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant37));
-                                                    } else {
-                                                        locatedVariant37 = foundLocatedVariants.get(0);
-                                                    }
-                                                    logger.info(locatedVariant37.toString());
-                                                    rca.setLocatedVariant(locatedVariant37);
-                                                    rca.setId(canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca));
-                                                    logger.info(rca.toString());
-
-                                                    rca.getVersions().add(clinvarVersion);
-
-                                                    scaSet.stream().forEach(a -> a.getReferenceClinicalAssertions().add(rca));
-
-                                                    rca.setSubmissionClinicalAssertions(scaSet);
-                                                    canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
-
-                                                }
-
+                                                locatedVariant37 =
+                                                        createOrUpdateVariant(sequenceLocationType, genomeRef37, genomeRefSeq,
+                                                                clinvarVersion, scaSet, rca, allVariantTypes);
                                             }
-
                                         }
 
                                     }
@@ -580,6 +526,39 @@ public class PersistUsingSequenceLocation implements Callable<Void> {
         logger.info("duration = {}", String.format("%s seconds", (end - start) / 1000D));
 
         return null;
+    }
+
+    private LocatedVariant createOrUpdateVariant(SequenceLocationType sequenceLocation,
+                                                 GenomeRef genomeRef, GenomeRefSeq genomeRefSeq,
+                                                 ClinVarVersion clinvarVersion,
+                                                 Set<SubmissionClinicalAssertion> scaSet, ReferenceClinicalAssertion rca,
+                                                 List<VariantType> allVariantTypes) throws CANVASDAOException {
+        LocatedVariant locatedVariant = LocatedVariantFactory.create(genomeRef, genomeRefSeq,
+                sequenceLocation.getPositionVCF().intValue(),
+                sequenceLocation.getReferenceAlleleVCF(),
+                sequenceLocation.getAlternateAlleleVCF(),
+                allVariantTypes);
+        if (locatedVariant != null) {
+
+            List<LocatedVariant> foundLocatedVariants = canvasDAOBeanService.getLocatedVariantDAO()
+                    .findByExample(locatedVariant);
+            if (CollectionUtils.isEmpty(foundLocatedVariants)) {
+                locatedVariant
+                        .setId(canvasDAOBeanService.getLocatedVariantDAO().save(locatedVariant));
+            } else {
+                locatedVariant = foundLocatedVariants.get(0);
+            }
+            logger.info(locatedVariant.toString());
+            rca.setLocatedVariant(locatedVariant);
+            rca.setId(canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca));
+            logger.info(rca.toString());
+            rca.getVersions().add(clinvarVersion);
+            scaSet.stream().forEach(a -> a.getReferenceClinicalAssertions().add(rca));
+            rca.setSubmissionClinicalAssertions(scaSet);
+            canvasDAOBeanService.getReferenceClinicalAssertionDAO().save(rca);
+
+        }
+        return locatedVariant;
     }
 
     private void canonicalize(List<Pair<LocatedVariant, LocatedVariant>> canonicalLocatedVariants) throws CANVASDAOException {
